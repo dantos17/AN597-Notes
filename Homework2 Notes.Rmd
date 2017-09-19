@@ -79,13 +79,18 @@ plot(y, dpois(y, 15, log=FALSE), cex=0.4)
 Okay so now the x axis goes from 0-30 which is what I wanted, but there's a black line near the bottom, not sure why it's there, and it looks slightly like a normal distribution
 Also I'm getting warnings and I don't know why/what that means...update, some of them are non-integers? Why would that be if log=FALSE?
 
-According to the textbook:
-```{r echo=TRUE}
 plot(dpois(x=0:30,lambda=15),ylim=c(0,0.25),names.arg=0:30, ylab="Pr(X=x)", xlab="x")
-```
-
 
 Okay so it's saying that I have non-graphical parameters but I'm getting a graph?
+
+I'm going to just do a barplot like the book does instead of a scatter plot, because the histogram for the last question is also going to be a bar graph.
+
+According to the textbook:
+```{r echo=TRUE}
+barplot(dpois(x=0:30,lambda=15),ylim=c(0,0.25), space=0,names.arg=0:30, ylab="Pr(X=x)", xlab="x")
+```
+
+I didn't get any warnings so I'm assuming this is good
 
 #Question 5
 simulate 104 results (2 years worth of work)
