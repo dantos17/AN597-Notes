@@ -1,0 +1,74 @@
+---
+title: "Swirl-Getting and Cleaning Data"
+author: "Dani Antos"
+date: "September 19, 2017"
+output: html_document
+---
+
+
+```{r}
+library(dplyr)
+mydf<-read.csv(path2csv,stringsAsFactors = FALSE)
+dim(mydf)
+head(mydf)
+packageVersion("dplyr")
+```
+
+First step is to load data into a data frame tbl
+```{r}
+cran <- tbl_df(mydf)
+rm("mydf") #used to remove the original dataframe
+cran #used to show the data in the console
+```
+this allows data to be more informative and compact than an original data frame
+
+The five "verbs" that cover most fundamental data manipulation tasks: select(), filter(), arrange(), mutate(),
+summarize()
+
+in large datasets, you usually only want some of the variables
+```{r}
+select(cran, ip_id, package, country) #only shows those three columns chosen, using select function is specific to columns, and they are returned in the order specified in the code
+```
+
+using select, we can also specify a sequence of columns using a colon (similar to numbers in vectors)
+```{r}
+select(cran, r_arch:country)
+select(cran, country:r_arch) #gives column sequence in reverse order
+cran #to show entire dataset again
+select(cran, -time) #used to get rid of a column, in this case "time"
+```
+
+Omitting columns and grabbing sequences of columns can be combined to omit sequences of columns
+```{r}
+select(cran, -(x:size)) #make sure to use X not x
+```
+
+Now we're filtering row instead of columns, using filter()
+```{r}
+filter(cran, package == "swirl") #filter recognizes package as a column of cran
+filter(cran, r_version == "3.1.1", country == "US") #rows corresponding to downloads from users in the us running that specific version of R
+filter(cran, r_version <= "3.0.2", country == "IN") #R version will be less than or equal to 3.0.2
+filter(cran, country == "US" | country == "IN")
+ filter(cran, size >100500, r_os=="linux-gnu") #doesn't need quotes because it is a number
+```
+
+NA values can be detected with is.na()
+```{r}
+is.na(c(3,5,NA,10))
+!is.na(c(3,5,NA,10)) #adding '!' flips all of the values, ie. true becomes false
+filter(cran, !is.na(r_version)) 
+```
+
+Arrange() allows you to order the rows of a dataset according to the values of a particular variable
+```{r}
+cran2<-select(cran, size:ip_id)
+arrange(cran2, ip_id) #ip_id column arranged in ascending order
+arrange(cran2, desc(ip_id)) #arrange it in descending order
+```
+
+we can also arrange by multiple variables
+```{r}
+arrange(cran2, package, ip_id)
+arrange(cran2, country, desc(r_version), ip_id)
+```
+
