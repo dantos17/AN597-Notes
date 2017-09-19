@@ -7,9 +7,12 @@ output: html_document
 lambda=15 (mean)
 To set up the distribution, does it matter what "n" is? Should I just pick a big enough number to get a good distribution?
 
+```{r echo=TRUE}
 set.seed(1)
 x <- rpois(100000, 15)
 plot(x, dpois(x, 15, log=FALSE))
+```
+
 
 Okay so probability that she'll hear more than 8 calls...
 
