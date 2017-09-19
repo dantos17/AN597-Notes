@@ -1,0 +1,61 @@
+---
+title: "Homework2 Code"
+output: html_document
+---
+
+#Question 1
+lambda=15 (mean)
+To set up the distribution, does it matter what "n" is? Should I just pick a big enough number to get a good distribution?
+
+set.seed(1)
+x <- rpois(100000, 15)
+plot(x, dpois(x, 15, log=FALSE))
+
+Okay so probability that she'll hear more than 8 calls...
+
+ppois(x>=8, 15, lower.tail=TRUE, log.p=FALSE)
+I could do a sum but there's no upper limit
+
+or could I use qpois?
+
+qpois(p, lambda, lower.tail=TRUE, log.p=FALSE)
+
+qpois(0.975, 15, lower.tail=TRUE, log.p=FALSE)
+=23...so can I asssume that 23 is a good upper bound, because 95% of the values will be under 23? if so:
+
+sum(ppois(8:23, 15, lower.tail=TRUE, log.p=FALSE))
+
+Unsure, I got a number larger than 1, not sure if that can happen.
+
+
+#Question 2
+Probability of hearing no calls
+Before, I tried: p(x)= lambda^x*exp(-lambda)/x! but I got a number that was x10^-7
+
+What if I do ppois again?
+
+ppois(0, 15, lower.tail=TRUE, log.p=FALSE)
+
+Update I got the same number as doing p(0) so maybe that's the right answer...
+
+#Question 3
+exactly 3 calls in a session, x=3, I know I can use that formula.
+
+p3 <- 15^3*exp(-15)/factorial(3)
+p3
+
+ppois(3, 15, lower.tail=TRUE, log.p=FALSE)
+This one was about 2x larger than the p(3) formula.
+
+#Question 4
+plot values in the range 0:30
+
+y<- seq(0, 30, 0.0001)
+plot(y, dpois(y, 15, log=FALSE), cex=0.4)
+
+Okay so now the x axis goes from 0-30 which is what I wanted, but there's a black line near the bottom, not sure why it's there, and it looks slightly like a normal distribution
+Also I'm getting warnings and I don't know why/what that means...update, some of them are non-integers? Why would that be if log=FALSE?
+
+#Question 5
+simulate 104 results (2 years worth of work)
+so would n=104 or 1? Because you want one result per sample (not multiple numbers from the vector per sampling?)
