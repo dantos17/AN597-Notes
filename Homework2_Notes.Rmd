@@ -55,7 +55,6 @@ dpois(x=0,lambda=15)
 ```
 
 
-
 #Question 3
 exactly 3 calls in a session, x=3, I know I can use that formula.
 ```{r echo=TRUE}
