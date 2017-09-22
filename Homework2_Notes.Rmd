@@ -114,4 +114,4 @@ creating a histogram of the simulated results
 ```{r  echo=TRUE}
 hist(set, xlim=c(0,30))
 ```
-The mean is the same for both plots because it was set to 15 in both cases. However, because the first plot (from Question 4) was just a set of random values, it looks more like a normal distribution/bell curve than the simulated data. Also, if a line was plotted over the simulated data, the right tail looks longer than the left tail, which is not the case in the first plot. Considering the difference in number of observations, it makes sense that the first plot has more of a bell curve shape compared to the simulated data.
+The mean is the same for both plots because it was set to 15 in both cases. However, because the first plot (from Question 4) was just a set of random values, it looks more like a normal distribution/bell curve than the simulated data. Also, if a line was plotted over the simulated data, the right tail looks longer than the left tail, which is not the case in the first plot. 

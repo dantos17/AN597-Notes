@@ -1,0 +1,21 @@
+---
+title: "Swirl-Getting and Cleaning Data"
+author: "Dani Antos"
+date: "September 19, 2017"
+output: html_document
+---
+
+from the previous lesson, summarize() is the most powerful manipulations to apply to grouped data
+```{r}
+library(dplyr)
+cran <- tbl_df(mydf)
+rm("mydf")
+cran
+```
+
+To group cran by the "package" variable:
+```{r}
+by_package <- group_by(cran, package, add=FALSE)
+by_package
+```
+
