@@ -1,0 +1,6 @@
+set.seed(1)
+x <- rnorm(1000, 3.5, 4)
+mean(x)
+var(x)
+sd(x)
+hist(x, breaks = seq(-15, 20, 0.5), probability=TRUE)

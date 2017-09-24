@@ -19,21 +19,7 @@ plot(x, dpois(x, 15, log=FALSE))
 Okay so probability that she'll hear more than 8 calls...
 
 ppois(x>=8, 15, lower.tail=TRUE, log.p=FALSE)
-I could do a sum but there's no upper limit. (This code didn't work at all so there's no point in putting it in an R chunk)
 
-or could I use qpois?
-
-qpois(p, lambda, lower.tail=TRUE, log.p=FALSE)
-```{r echo=TRUE}
-qpois(0.975, 15, lower.tail=TRUE, log.p=FALSE)
-```
-
-=23...so can I asssume that 23 is a good upper bound, because 95% of the values will be under 23? if so:
-```{r echo=TRUE}
-sum(ppois(8:23, 15, lower.tail=TRUE, log.p=FALSE))
-```
-
-This definitely isn't right because you can't have a probability greater than 1.
 
 ```{r echo=TRUE}
 1-ppois(q=8, lambda=15)
@@ -66,10 +52,6 @@ p3
 ```{r echo=TRUE}
 dpois(x=3,lambda=15) #output is the same as the above formula
 ```
-
-
-ppois(3, 15, lower.tail=TRUE, log.p=FALSE)
-This one was about 2x larger than the p(3) formula. BECAUSE it's left cumulative, so adding up probabilities of 0-3
 
 #Question 4
 plot values in the range 0:30
