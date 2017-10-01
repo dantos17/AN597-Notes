@@ -1,0 +1,27 @@
+---
+title: "Swirl- GGplot 2"
+author: "Dani Antos"
+date: "October 1, 2017"
+output: html_document
+---
+
+ggplot part 2, focusing on the fundamental components of the package to be better able to customise plots. We're also going over the second workhorse function **ggplot**.
+
+There are 7 main components of ggplot2 plots:
+-data frame: holds the data to be plotted
+-aesthetic mapping: how data are mapped to color, size, etc.
+-geoms: what we see in the plots; lines, points, etc. 
+-facets: panels used in conditional plots
+-stats: statistical transformations like binning, quantiles, etc.
+-scales: cording that the aesthetic map uses
+-coordinate system: how the plots are depicted
+the last three are taken care of automatically in qplot
+
+```{r}
+qplot(displ, hwy, data= mpg, geom= c("point", "smooth"), facets= .~drv) #recap on how to use qplot
+g <- ggplot(mpg, aes(displ,hwy))
+summary(g)
+g+geom_point()
+g+geom_point()+geom_smooth() #adds trendline and confidence band
+```
+

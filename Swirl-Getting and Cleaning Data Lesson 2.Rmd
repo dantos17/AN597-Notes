@@ -6,7 +6,7 @@ output: html_document
 ---
 
 from the previous lesson, summarize() is the most powerful manipulations to apply to grouped data
-```{r}
+```{r creating cran}
 library(dplyr)
 cran <- tbl_df(mydf)
 rm("mydf")
@@ -14,8 +14,98 @@ cran
 ```
 
 To group cran by the "package" variable:
-```{r}
+```{r summarize function}
 by_package <- group_by(cran, package, add=FALSE)
 by_package
+summarize(by_package, mean(size)) #returns the mean size of each package instead of a single value
+pack_sum <- summarize(by_package,
+                      count = n(),
+                      unique = n_distinct(ip_id),
+                      countries = n_distinct(country),
+                      avg_bytes = mean(size)) #I didn't really do much for this, just copied and pasted
+pack_sum
+```
+
+To isolate a certain percentage of the data, we can use percentiles and quantile functions
+```{r quantiles}
+quantile(pack_sum$count, probs = 0.99)
+top_counts <- filter(pack_sum, count>679) #selects rows that have at least 679 counts
+top_counts
+View(top_counts) #capital V, shows all rows
+top_counts_sorted <- arrange(top_counts, desc(count)) #top counts sorted from greatest to least
+View(top_counts_sorted)
+```
+
+Now we're doing quantiles of the unique column 
+```{r}
+quantile(pack_sum$unique, probs= 0.99)
+top_unique <- filter(pack_sum, unique>465)
+View(top_unique)
+top_unique_sorted <- arrange(top_unique, desc(unique))
+View(top_unique_sorted)
+```
+
+#Chaining
+```{r}
+by_package <- group_by(cran, package)
+pack_sum <- summarize(by_package,
+                      count = n(),
+                      unique = n_distinct(ip_id),
+                      countries = n_distinct(country),
+                      avg_bytes = mean(size))
+top_countries <- filter(pack_sum, countries > 60)
+result1 <- arrange(top_countries, desc(countries), avg_bytes)
+print(result)
+```
+Sorted primarily by country but used average bytes as a tie-breaker
+
+```{r}
+
+result2 <-
+  arrange(
+    filter(
+      summarize(
+        group_by(cran,
+                 package
+        ),
+        count = n(),
+        unique = n_distinct(ip_id),
+        countries = n_distinct(country),
+        avg_bytes = mean(size)
+      ),
+      countries > 60
+    ),
+    desc(countries),
+    avg_bytes
+  )
+
+print(result2)
+
+```
+
+#Chaining
+```{r}
+result3 <-
+  cran %>%
+  group_by(package) %>%
+  summarize(count = n(),
+            unique = n_distinct(ip_id),
+            countries = n_distinct(country),
+            avg_bytes = mean(size)
+  ) %>%
+  filter(countries > 60) %>%
+  arrange(desc(countries), avg_bytes)
+print(result3)
+View(result3) #view dataset, don't forget the capital V
+```
+The last three code chunks all have the same output, but the last one is more convenient and concise.
+
+```{r}
+cran %>%
+  select(ip_id, country, package, size) %>%
+  mutate(size_mb = size / 2^20) %>%
+  filter(size_mb <= 0.5) %>%
+  arrange(desc(size_mb)) %>%
+  print #this is the whole script, in the tutorial I just took it one line at a time
 ```
 

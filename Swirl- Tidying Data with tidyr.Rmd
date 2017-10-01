@@ -1,0 +1,19 @@
+---
+title: "Swirl-Tidying Data with tidyr"
+author: "Dani Antos"
+date: "September 30, 2017"
+output: html_document
+---
+Tidy data satisfies three conditions: 1- each variable forms a column; 2- each observation forms a row; 3- ecah type of observational unit forms a table (so basically it's the type of data table that I've known for 10 years)
+
+Examples of "messy data":
+```{r}
+library(tidyr)
+students #first example, variables are all kinds of messed up
+gather(students, sex, count, -grade) #now each row represents one observation with a unique combination of the variables
+students2 #multiple variables are stored in one column
+res <- gather(students2, sex_class, count, -grade)
+res
+separate(data= res, col= sex_class, c("sex", "class")) #we did it in two steps but you can also use chaining
+```
+

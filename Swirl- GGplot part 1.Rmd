@@ -1,0 +1,29 @@
+---
+title: "Swirl-GGplot 1"
+author: "Dani Antos"
+date: "October 1, 2017"
+output: html_document
+---
+
+ggplot2 is the newest plotting system in R. "Aesthetics" allow us to customize attributes like color, shape, and size, and geometric objects (geoms) like points, lines, and bars. 
+
+ggplot2 is the best of "base" and "lattice"- allows for multipanel plots but allows you to add stuff. 2 workhouse functions: **(1)** qplot, easier of the two; and **(2)** ggplot, more flexible for customisations
+
+```{r}
+library(ggplot2)
+str(mpg)
+qplot(displ, hwy, data = mpg)
+qplot(displ, hwy, data = mpg, color=drv) #color codes points
+qplot(displ, hwy, data = mpg, color=drv, geom= c("point", "smooth")) #gives trendlines and 95% CI's
+qplot(y=hwy, data= mpg, color=drv)
+qplot(drv, hwy, data= mpg, geom= "boxplot")
+qplot(drv, hwy, data= mpg, geom= "boxplot", color= manufacturer)
+```
+
+Moving on to histograms:
+```{r}
+qplot(hwy, data= mpg, fill=drv)
+qplot(displ, hwy, data= mpg, facets= . ~drv) #makes scatterplot with 3 facets or sections
+qplot(hwy, data= mpg, facets= drv ~ ., binwidth= 2) #faceted barplot
+```
+
