@@ -11,16 +11,24 @@ alternative hypothesis(Ha)= sampple statistic deviates more than expected by cha
 if Ha>Ho: upper one-tailed test
 if Ha<Ho: lower one-tailed test
 if Ha doesn't equal Ho: two tailed test
+-if you don't have any previous assumptions about your hypothesis, do this test
 
 Type 1 error- falsely reject the null
 Type 2 error- falsely accept the null
 -typically we try to have a high bar for Type 1 errors and a low bar for Type 2 errors
 
-p value= probability of obtaiing a test statistic that is as high or higher than our calculated one by chance
+p value= probability of obtaiing a test statistic that is as high or higher than our calculated one by chance (assuming the null hypothesis is true)
+
 test statistic is determined by the difference between the sample statistic and the expected null value AND the standard error of the sample statistic
+-it's based on the null value
+-looking at sample mean vs idealised mean, and whether or not the sample mean is located in the 95% confidence interval
 -we compare the p value to a significance level (alpha, usually 0.05 or 0.01); if p>alpha, there is enough evidence to reject Ho
+-rejecting null hypothesis= **statistical significance**
 
 Example: One sample test
+Ho? There is no difference in the means of the different trapping seasons
+Ha? The 2016 monkeys are outside the 95% CI in the heavier direction
+Upper tailed test
 ```{r}
 library(curl)
 f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/vervet-weights.csv")
@@ -34,21 +42,23 @@ s <- sd(x)
 n <- length(x)
 sem <- s/sqrt(n)
 z <- (m - mu)/sem
-z #z is a quantile, the number of standard errors of the mean away from the population mean
+z #z is a quantile, the number of standard errors of the mean away from the population mean, assuming normal distribution
 p <- 1 - pnorm(z)
 p #probability of seeing a deviation as high or higher than z by chance
-p <- pnorm(z, lower.tail = FALSE)
-p #sample size is usually limited so we're using the t distribution
+p <- pnorm(z, lower.tail = FALSE) #we only want the upper tail
+p #p is less than 0.05, so it's statistically significant
+
+#sample size is usually limited so we're using the t distribution
 #process is still the same as a normal distribution
-p <- 1 - pt(z, df = n - 1)
-p #this is not working like it is in the module, I'm getting 1000 results
+p <- 1 - pt(z, df = n - 1) #standard error rather than standard deviation
+p 
 p <- pt(z, df = n - 1, lower.tail = FALSE)
 p
 t <- t.test(x = x, mu = mu, alternative = "greater")
 t
 ```
 
-t.test() function makes it easy to calculate t distribution CI's
+t.test() function makes it easy to calculate t distribution CI's **use t.test() function from now on**
 ```{r}
 lower <- m - qt(1 - 0.05/2, df = n - 1) * sem
 upper <- m + qt(1 - 0.05/2, df = n - 1) * sem
@@ -59,7 +69,7 @@ ci <- t$conf.int
 ci #using t test function, so confidence interval must be a built in part of the function
 ```
 
-CHALLENGE:
+CHALLENGE: woolly monkey weights
 ```{r}
 f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/woolly-weights.csv")
 d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
@@ -74,17 +84,18 @@ t <- (m - mu)/sem #test statistic
 t
 alpha <- 0.05
 crit <- qt(1 - alpha/2, df = n - 1)  # identify critical values
-test <- t < -crit || t > crit  # boolean test as two whether t is larger than the critical value at either tail
+test <- t < -crit || t > crit  # boolean test as to whether t is larger than the critical value at either tail
 test <- abs(t) > crit
 t.test(x = x, mu = mu, alternative = "two.sided")
 ```
 
 Comparing 2 sample means:
+directly comparing samples vs comparing a sample with an idealised mean
 null hypothesis would be the two means being equal
 -samples could be paired (linked) or unpaired (independent)
 -are the variances comparable
 
-in most cases, they are unpaired and we can't assume that he variances are comparable--solution is **Welch's t test**
+in most cases, they are unpaired and we can't assume that the variances are comparable--solution is **Welch's t test**
 
 EXAMPLE
 ```{r}
@@ -118,7 +129,7 @@ t #same thing using the t test function
 ```
 
 Samples of equal variance:
--simpler than a Welch t test
+-simpler than a Welch t test, degrees of freedom are higher
 ```{r}
 s <- sqrt((((n1 - 1) * s1^2) + ((n2 - 1) * s2^2))/(n1 + n2 - 2))
 t <- (m2 - m1 - mu)/(sqrt(s^2 * (1/n1 + 1/n2)))
@@ -193,7 +204,7 @@ pop_se <- sqrt(pi * (1 - pi)/n)
 pop_se
 ```
 the normal approximation is true as long as: n is large and pi isn't close to 0 or 1
--check n*pi and nx(1-pi) are greater than 5
+-check n*pi and n(1-pi) are greater than 5
 
 z statistic= (observed stat-expected stat)/SE
 
