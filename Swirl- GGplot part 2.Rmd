@@ -26,7 +26,6 @@ g+geom_point()+geom_smooth() #adds trendline and confidence band
 g+geom_point()+geom_smooth(method="lm") #trendline of linear model
 g+geom_point()+geom_smooth(method="lm")+facet_grid( .~drv) #three different panels
 g+geom_point()+geom_smooth(method="lm")+facet_grid( .~drv)+ggtitle("Swirl Rules!") #adds title
-
 ```
 
 Now we're going to practice customising
@@ -34,6 +33,15 @@ Now we're going to practice customising
 g+geom_point(color="pink", size=4, alpha=1/2) #alpha sets the transparency
 g + geom_point(aes(color = drv), size = 4, alpha = 1/2) #we have to use aes because the color is data dependent
 g + geom_point(aes(color = drv)) + labs(title="Swirl Rules!") + labs(x="Displacement", y="Hwy Mileage") #way to add x and y axis titles
+g+geom_point(aes(color=drv), size=2, alpha=1/2)+geom_smooth(size=4, linetype=3, method="lm", se=FALSE) #method specifices linear regression, linetype signifies dashed
+g+geom_point(aes(color=drv))+theme_bw(base_family="Times")
+plot(myx,myy, type="l", ylim=c(-3,3)) #base function plotg<-
+```
 
+```{r}
+g<- ggplot(testdat, aes(myx,myy))
+g+geom_line() #displays outlier point, can't see a lot of the other data
+g+geom_line()+ylim(-3,3) #adds limit, ggplot ignores outlier
+g+geom_line()+coord_cartesian(ylim=c(-3,3)) #looks more like the basic plot function
 ```
 
