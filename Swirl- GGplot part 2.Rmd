@@ -23,5 +23,17 @@ g <- ggplot(mpg, aes(displ,hwy))
 summary(g)
 g+geom_point()
 g+geom_point()+geom_smooth() #adds trendline and confidence band
+g+geom_point()+geom_smooth(method="lm") #trendline of linear model
+g+geom_point()+geom_smooth(method="lm")+facet_grid( .~drv) #three different panels
+g+geom_point()+geom_smooth(method="lm")+facet_grid( .~drv)+ggtitle("Swirl Rules!") #adds title
+
+```
+
+Now we're going to practice customising
+```{r}
+g+geom_point(color="pink", size=4, alpha=1/2) #alpha sets the transparency
+g + geom_point(aes(color = drv), size = 4, alpha = 1/2) #we have to use aes because the color is data dependent
+g + geom_point(aes(color = drv)) + labs(title="Swirl Rules!") + labs(x="Displacement", y="Hwy Mileage") #way to add x and y axis titles
+
 ```
 
