@@ -8,7 +8,9 @@ output: html_document
 We're talking about statistical inference and hypothesis testing
 
 **critical value** corresponds to the quantile limits of interest; +/- 1-(alpha/2)
+-has to be derived from the sampling that we're talking about
 ```{r}
+library(curl)
 n <- 1000
 mu <- 3.5
 sigma <- 4
@@ -19,7 +21,7 @@ m <- mean(s)
 m
 sd <- sd(s)
 sd
-sem <- sd(s)/sqrt(length(S))
+sem <- sd(s)/sqrt(length(s))
 sem
 lower <- m- qnorm(1-0.05/2)*sem
 upper <- m+ qnorm(1-0.05/2)*sem
@@ -78,6 +80,10 @@ for (i in 1:1000) {
 hist(x, breaks = seq(min(x), max(x), length.out = 20), probability = TRUE)
 ```
 
+Take home points:
+-regardless of distribution, a sampling of averages, sums, etc. will be approximately normal and centered at the mean
+-standard deviation of these averages will be approximately equal to standard error of the mean
+
 So basically, a distribution of averages will be approximately normal, will be centered at the population mean, and the sd will be roughly equal to the se of the mean. As sample size increases, the standard error of the mean decreases and the distribution becomes more normal.
 
 We can construct confidence intervals for statistics OTHER THAN the mean
@@ -85,7 +91,6 @@ We can construct confidence intervals for statistics OTHER THAN the mean
 n <- 1000
 x <- 856
 phat <- x/n
-
 phat
 n * phat
 n * (1-phat)
@@ -104,7 +109,12 @@ abline(h = 0)
 ```
 
 #Small Sample Confidence Intervals
-if n<30, then we use the t distribution. It's similar in shape to the normal distribution: bell shaped, symmetric, and unimodal.
+if n<30, then we use the t distribution. It's similar in shape to the normal distribution: bell shaped, symmetric, and unimodal. This is typically what we will use
+
+**degrees of freedom** are important when dealing with a t distribution...at a low df, the tails of the distribution get really fat
+-means that there are more extreme values than what would be found in a normal distribution
+-defined as the number of components that are free to change within a given statistic
+-basic change is that "z quantile" is replaced with a "t quantile" dependent on sample size
 ```{r}
 mu <- 0
 sigma <- 1
@@ -153,3 +163,4 @@ ci_t <- c(lower, upper)
 ci_t
 ```
 
+Shows graphically and mathematically how sample size has an impact on a dataset.
