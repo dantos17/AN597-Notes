@@ -1,0 +1,249 @@
+---
+title: "Module10 Notes"
+author: "Dani Antos"
+date: "October 2, 2017"
+output: html_document
+---
+
+null hypothesis (Ho)= sample statistic is no different from what is expected
+alternative hypothesis(Ha)= sampple statistic deviates more than expected by chance from what is expected
+
+if Ha>Ho: upper one-tailed test
+if Ha<Ho: lower one-tailed test
+if Ha doesn't equal Ho: two tailed test
+
+Type 1 error- falsely reject the null
+Type 2 error- falsely accept the null
+-typically we try to have a high bar for Type 1 errors and a low bar for Type 2 errors
+
+p value= probability of obtaiing a test statistic that is as high or higher than our calculated one by chance
+test statistic is determined by the difference between the sample statistic and the expected null value AND the standard error of the sample statistic
+-we compare the p value to a significance level (alpha, usually 0.05 or 0.01); if p>alpha, there is enough evidence to reject Ho
+
+Example: One sample test
+```{r}
+library(curl)
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/vervet-weights.csv")
+d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+head(d)
+mean(d$weight)
+mu <- 4.9
+x <- d$weight
+m <- mean(x)
+s <- sd(x)
+n <- length(x)
+sem <- s/sqrt(n)
+z <- (m - mu)/sem
+z #z is a quantile, the number of standard errors of the mean away from the population mean
+p <- 1 - pnorm(z)
+p #probability of seeing a deviation as high or higher than z by chance
+p <- pnorm(z, lower.tail = FALSE)
+p #sample size is usually limited so we're using the t distribution
+#process is still the same as a normal distribution
+p <- 1 - pt(z, df = n - 1)
+p #this is not working like it is in the module, I'm getting 1000 results
+p <- pt(z, df = n - 1, lower.tail = FALSE)
+p
+t <- t.test(x = x, mu = mu, alternative = "greater")
+t
+```
+
+t.test() function makes it easy to calculate t distribution CI's
+```{r}
+lower <- m - qt(1 - 0.05/2, df = n - 1) * sem
+upper <- m + qt(1 - 0.05/2, df = n - 1) * sem
+ci <- c(lower, upper)
+ci #how to do it by hand
+t <- t.test(x = x, mu = mu, alternative = "two.sided")
+ci <- t$conf.int
+ci #using t test function, so confidence interval must be a built in part of the function
+```
+
+CHALLENGE:
+```{r}
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/woolly-weights.csv")
+d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+head(d)
+x <- d$weight
+m <- mean(x)
+s <- sd(x)
+n <- length(x)
+sem <- s/sqrt(n)
+mu <- 7.2
+t <- (m - mu)/sem #test statistic
+t
+alpha <- 0.05
+crit <- qt(1 - alpha/2, df = n - 1)  # identify critical values
+test <- t < -crit || t > crit  # boolean test as two whether t is larger than the critical value at either tail
+test <- abs(t) > crit
+t.test(x = x, mu = mu, alternative = "two.sided")
+```
+
+Comparing 2 sample means:
+null hypothesis would be the two means being equal
+-samples could be paired (linked) or unpaired (independent)
+-are the variances comparable
+
+in most cases, they are unpaired and we can't assume that he variances are comparable--solution is **Welch's t test**
+
+EXAMPLE
+```{r}
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/colobus-weights.csv")
+d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+head(d)
+x <- d$weight[d$sex == "male"]
+y <- d$weight[d$sex == "female"]
+par(mfrow = c(1, 2))
+boxplot(x, ylim = c(4.5, 8), main = "Weight (kg)", xlab = "Males")
+boxplot(y, ylim = c(4.5, 8), main = "Weight (kg)", xlab = "Females")
+m1 <- mean(x)
+m2 <- mean(y)
+mu <- 0  # you could leave this out... the default argument value is 0
+s1 <- sd(x)
+s2 <- sd(y)
+n1 <- length(x)
+n2 <- length(y)
+t <- (m2 - m1 - mu)/sqrt(s2^2/n2 + s1^2/n1)
+t
+alpha <- 0.05
+crit <- qt(1 - alpha/2, df = n - 1)
+crit
+test <- t < -crit || t > crit  # boolean test
+test <- abs(t) > crit
+test
+df <- (s2^2/n2 + s1^2/n1)^2/((s2^2/n2)^2/(n2 - 1) + (s1^2/n1)^2/(n1 - 1))
+df #df is calculated in this way for this type of test
+t <- t.test(x = x, y = y, mu = 0, alternative = "two.sided")
+t #same thing using the t test function
+```
+
+Samples of equal variance:
+-simpler than a Welch t test
+```{r}
+s <- sqrt((((n1 - 1) * s1^2) + ((n2 - 1) * s2^2))/(n1 + n2 - 2))
+t <- (m2 - m1 - mu)/(sqrt(s^2 * (1/n1 + 1/n2)))
+t
+df <- n1 + n2 - 2
+df
+t <- t.test(x = x, y = y, mu = 0, var.equal = TRUE, alternative = "two.sided")
+t
+var(x)/var(y) #way to check if we can use the easier version, quotient must be less than 2
+vt <- var.test(x, y)
+vt
+```
+var.test() conducts a statistical test on the ratio of variances, compares the ratio test statistic to a F distribution
+-F distribution used to model ratios of random variables, useful in regression data
+-in this case, it's dependent on df values provided
+
+Paired samples:
+-null hypothesis=the mean of paired differences between the samples is 0
+
+Challenge-
+```{r}
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/iqs.csv")
+d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+head(d)
+x <- d$IQ.before - d$IQ.after
+m <- mean(x)
+mu <- 0  # can leave this out
+s <- sd(x)
+n <- length(x)
+sem <- s/sqrt(n)
+par(mfrow = c(1, 2))
+boxplot(d$IQ.before, ylim = c(115, 145), main = "IQ", xlab = "Before")
+boxplot(d$IQ.after, ylim = c(115, 145), main = "IQ", xlab = "After")
+t <- (m - mu)/sem
+t
+alpha <- 0.05
+crit <- qt(1 - alpha/2, df = n - 1) 
+crit
+test <- t < -crit || t > crit
+test
+t.test(x, df = n - 1, alternative = "two.sided")
+```
+
+Z test- 
+I think we're talking about binary distributions now (ie, a number of successes out of k trials); mean = pi
+```{r}
+pop <- c(rep(0, 500), rep(1, 500))
+pi <- 0.5
+x <- NULL
+n <- 10
+for (i in 1:1000) {
+    x[i] <- mean(sample(pop, size = n, replace = FALSE))  
+}
+m <- mean(x)
+m
+s <- sd(x)
+s
+pop_se <- sqrt(pi * (1 - pi)/n)
+pop_se
+pop <- c(rep(0, 800), rep(1, 200))
+pi <- 0.8
+x <- NULL
+n <- 10
+for (i in 1:1000) {
+    x[i] <- mean(sample(pop, size = n, replace = FALSE))
+}
+m <- mean(x)
+m
+s <- sd(x)
+s
+pop_se <- sqrt(pi * (1 - pi)/n)
+pop_se
+```
+the normal approximation is true as long as: n is large and pi isn't close to 0 or 1
+-check n*pi and nx(1-pi) are greater than 5
+
+z statistic= (observed stat-expected stat)/SE
+
+Challenge:
+```{r}
+v <- c(0, 1, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 1, 1, 0, 
+    1, 1, 0, 1, 0, 1, 1)
+phat <- mean(v)
+phat
+pi <- 0.8 #based on her previous data
+n <- 30
+z <- (phat - pi)/sqrt(pi * (1 - pi)/30)
+z
+p <- pnorm(z, lower.tail = TRUE)
+p
+lower <- phat - qnorm(0.975) * sqrt(phat * (1 - phat)/30)
+upper <- phat + qnorm(0.975) * sqrt(phat * (1 - phat)/30)
+ci <- c(lower, upper)
+ci #this is using quantiles from a normal distribution but there are other ways to calculate this as well
+pt <- prop.test(x = sum(v), n = length(v), p = 0.8, conf.level = 0.95, correct = FALSE, 
+    alternative = "less")
+pt
+```
+
+Two sample Z tests-
+-very similar to comparing means
+Challenge:
+```{r}
+v1 <- c(1, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 
+    1, 0)
+v2 <- c(1, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 
+    0, 1, 1, 0, 1, 1, 1)
+pstar <- (sum(v1) + sum(v2))/(length(v1) + length(v2))
+pstar
+phat1 <- mean(v1)
+phat1
+phat2 <- mean(v2)
+phat2
+pi <- 0
+z <- (phat2 - phat1)/sqrt((pstar * (1 - pstar)) * (1/length(v1) + 1/length(v2)))
+z
+p <- 1 - pnorm(z, lower.tail = TRUE) + pnorm(z, lower.tail = FALSE)
+p
+crit <- qnorm(1 - alpha/2)  # identify critical values
+crit
+test <- p < -crit || p > crit  # boolean test
+test
+pt <- prop.test(x = c(sum(v2), sum(v1)), n = c(length(v2), length(v1)), alternative = "two.sided", 
+    correct = FALSE)
+pt
+
+```
+
