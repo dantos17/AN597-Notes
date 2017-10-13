@@ -1,0 +1,451 @@
+---
+title: "Module11 Notes"
+author: "Dani Antos"
+date: "October 7, 2017"
+output: html_document
+---
+
+```{r}
+library(curl)
+library(ggplot2)
+library(manipulate)
+
+```
+
+Recap:
+
+-Type I error: falsely reject the null; the probability of this error is equal to alpha (the significance level)
+
+-we can decrease the chance of this   error by decreasing alpha
+
+-Type II error: falsely accept the null, probability of this error is called beta, and we usually don't have a specific value for it
+
+#Type I Error
+typeI() will evaluate the Type I error rate
+```{r Type 1 error function}
+typeI <- function(mu0, sigma, n, alternative = "two.tailed", alpha = 0.05, k = 10000) {
+}
+typeI <- function(mu0, sigma, n, alternative = "two.tailed", alpha = 0.05, k = 1000) {
+    p <- rep(NA, k)  # sets up a vector of empty p values
+    for (i in 1:k) {
+        # sets up a loop to run k simulations
+        x <- rnorm(n = n, mean = mu0, sd = sigma)  # draws a sample from our distribution
+        m <- mean(x)  # calculates the mean
+        s <- sd(x)  # calculates the standard deviation
+        z <- (m - mu0)/(s/sqrt(n))  # calculates the T statistic for the sample drawn from the null distribution relative to the null distribution
+        # alternatively use t <- (m-mu0)/(s/sqrt(n))
+        if (alternative == "less") {
+            p[i] <- pnorm(z, lower.tail = TRUE)  # calculates the associated p value
+            # alternatively, use p[i] <- pt(t,df=n-1,lower.tail=TRUE)
+        }
+        if (alternative == "greater") {
+            p[i] <- pnorm(z, lower.tail = FALSE)  # calculates the associated p value
+            # alternatively, use p[i] <- pt(t,df=n-1,lower.tail=FALSE)
+        }
+        if (alternative == "two.tailed") {
+            if (z > 0) 
+                {
+                  p[i] <- 2 * pnorm(z, lower.tail = FALSE)
+                }  # alternatively, use if (t > 0) {p[i] <- pt(t,df=n-1,lower.tail=FALSE)}
+            if (z < 0) 
+                {
+                  p[i] <- 2 * pnorm(z, lower.tail = TRUE)
+                }  # alternatively, use if (t < 0) {p[i] <- pt(t,df=n-1,lower.tail=TRUE)}
+        }
+    }
+    
+    curve(dnorm(x, mu0, sigma/sqrt(n)), mu0 - 4 * sigma/sqrt(n), mu0 + 4 * sigma/sqrt(n), 
+        main = paste("Sampling Distribution Under the Null Hypothesis\nType I error rate from simulation = ", 
+            length(p[p < alpha])/k, sep = ""), xlab = "x", ylab = "Pr(x)", col = "red", 
+        xlim = c(mu0 - 4 * sigma/sqrt(n), mu0 + 4 * sigma/sqrt(n)), ylim = c(0, 
+            dnorm(mu0, mu0, sigma/sqrt(n))))
+    abline(h = 0)
+    
+    if (alternative == "less") {
+        polygon(cbind(c(mu0 - 4 * sigma/sqrt(n), seq(from = mu0 - 4 * sigma/sqrt(n), 
+            to = mu0 - qnorm(1 - alpha) * sigma/sqrt(n), length.out = 100), 
+            mu0 - qnorm(1 - alpha) * sigma/sqrt(n))), c(0, dnorm(seq(from = mu0 - 
+            4 * sigma/sqrt(n), to = mu0 - qnorm(1 - alpha) * sigma/sqrt(n), 
+            length.out = 100), mean = mu0, sd = sigma/sqrt(n)), 0), border = "black", 
+            col = "grey")
+        q <- pnorm(mu0 - qnorm(1 - alpha) * sigma/sqrt(n), mean = mu0, sd = sigma/sqrt(n)) - 
+            pnorm(mu0 - 4 * sigma/sqrt(n), mean = mu0, sd = sigma/sqrt(n))
+    }
+    if (alternative == "greater") {
+        polygon(cbind(c(mu0 + qnorm(1 - alpha) * sigma/sqrt(n), seq(from = mu0 + 
+            qnorm(1 - alpha) * sigma/sqrt(n), to = mu0 + 4 * sigma/sqrt(n), 
+            length.out = 100), mu0 + 4 * sigma/sqrt(n))), c(0, dnorm(seq(from = mu0 + 
+            qnorm(1 - alpha) * sigma/sqrt(n), to = mu0 + 4 * sigma/sqrt(n), 
+            length.out = 100), mean = mu0, sd = sigma/sqrt(n)), 0), border = "black", 
+            col = "grey")
+        q <- pnorm(mu0 + 4 * sigma/sqrt(n), mean = mu0, sd = sigma/sqrt(n)) - 
+            pnorm(mu0 + qnorm(1 - alpha) * sigma/sqrt(n), mean = mu0, sd = sigma/sqrt(n))
+    }
+    if (alternative == "two.tailed") {
+        polygon(cbind(c(mu0 - 4 * sigma/sqrt(n), seq(from = mu0 - 4 * sigma/sqrt(n), 
+            to = mu0 - qnorm(1 - alpha/2) * sigma/sqrt(n), length.out = 100), 
+            mu0 - qnorm(1 - alpha/2) * sigma/sqrt(n))), c(0, dnorm(seq(from = mu0 - 
+            4 * sigma/sqrt(n), to = mu0 - qnorm(1 - alpha/2) * sigma/sqrt(n), 
+            length.out = 100), mean = mu0, sd = sigma/sqrt(n)), 0), border = "black", 
+            col = "grey")
+        polygon(cbind(c(mu0 + qnorm(1 - alpha/2) * sigma/sqrt(n), seq(from = mu0 + 
+            qnorm(1 - alpha/2) * sigma/sqrt(n), to = mu0 + 4 * sigma/sqrt(n), 
+            length.out = 100), mu0 + 4 * sigma/sqrt(n))), c(0, dnorm(seq(from = mu0 + 
+            qnorm(1 - alpha/2) * sigma/sqrt(n), to = mu0 + 4 * sigma/sqrt(n), 
+            length.out = 100), mean = mu0, sd = sigma/sqrt(n)), 0), border = "black", 
+            col = "grey")
+        q <- pnorm(mu0 - qnorm(1 - alpha/2) * sigma/sqrt(n), mean = mu0, sd = sigma/sqrt(n)) - 
+            pnorm(mu0 - 4 * sigma/sqrt(n), mean = mu0, sd = sigma/sqrt(n)) + 
+            pnorm(mu0 + 4 * sigma/sqrt(n), mean = mu0, sd = sigma/sqrt(n)) - 
+            pnorm(mu0 + qnorm(1 - alpha/2) * sigma/sqrt(n), mean = mu0, sd = sigma/sqrt(n))
+    }
+    # print(round(q,digits=3)) # this prints area in the shaded portion(s) of
+    # the curve
+    return(length(p[p < alpha])/k)  # returns the proportion of simulations where p < alpha
+}
+```
+I'm not getting any output here...shouldn't curve at least be showing me a graph? I'm getting nothing. oH wait nevermind, all of that was just setting up the function I think
+
+```{r}
+eI <- typeI(mu0 = -3, sigma = 2, n = 5000, alternative = "greater", alpha = 0.05)
+eI <- typeI(mu0 = 5, sigma = 2, n = 1000, alternative = "less", alpha = 0.01)
+```
+I'm still getting nothing, it's saying incomplete expression (jk I got it, not sure why it worked the second time)
+
+#Challenge
+From the two coding chunks above it looks like Type I error increases as "n" increases but I will check.
+```{r}
+eI <- typeI(mu0 = 5, sigma = 2, n = 1000, alternative = "less", alpha = 0.01)
+eI <- typeI(mu0 = 5, sigma = 2, n = 2000, alternative = "less", alpha = 0.01)
+eI <- typeI(mu0 = 5, sigma = 2, n = 5000, alternative = "less", alpha = 0.01)
+eI <- typeI(mu0 = 5, sigma = 2, n = 10000, alternative = "less", alpha = 0.01)
+```
+Well the gray area doesn't seem to be changing but the x-axis is changing so I'm not too sure what conclusions can be drawn from this.
+
+Changing sigma:
+```{r}
+eI <- typeI(mu0 = 5, sigma = 2, n = 1000, alternative = "less", alpha = 0.01)
+eI <- typeI(mu0 = 5, sigma = 5, n = 1000, alternative = "less", alpha = 0.01)
+eI <- typeI(mu0 = 5, sigma = 100, n = 1000, alternative = "less", alpha = 0.01)
+```
+
+So I guess the only thing that should change the ype I error rate would be alpha.
+```{r}
+eI <- typeI(mu0 = 5, sigma = 2, n = 1000, alternative = "less", alpha = 0.01)
+eI <- typeI(mu0 = 5, sigma = 2, n = 1000, alternative = "less", alpha = 0.05)
+eI <- typeI(mu0 = 5, sigma = 2, n = 1000, alternative = "less", alpha = 0.10) #yes that is definitely true
+```
+
+**Bonferroni correction** is a way to correct for multiple testing problems
+
+-when you're doing "k" independent hypothesis tests with a significance level of alpha, adjust the alpha level used to interpret statistical significance to:
+
+alpha(B)=alpha/k
+
+-example: if we run 10 hypothesis tests (k=10), the adjusted alpha level would be 0.05/10=0.005
+
+-this is also called "limiting the family-wise error rate to level alpha"
+
+-this correction is considered very conservative, so there are other options
+```{r Bonferroni correction}
+alpha <- 0.05
+pvals <- c(1e-04, 0.003, 0.005, 0.01, 0.02, 0.04, 0.045, 0.11, 0.18, 0.23)
+sig <- pvals <= alpha/length(pvals)
+sig  # first 3 values are less than the adjusted alpha
+```
+
+**Benjamini & Hochberg correction** is less conservative than Bonferroni
+
+-goal of this one is to control the FDR (in this case incorrect rejections of the null) 
+```{r Benjamini and Hochberg}
+library(ggplot2)
+alpha <- 0.05
+psig <- NULL
+pvals <- c(1e-04, 0.003, 0.005, 0.01, 0.02, 0.04, 0.045, 0.11, 0.18, 0.27)
+for (i in 1:length(pvals)) {
+    psig[i] <- alpha * i/length(pvals)
+}
+d <- data.frame(cbind(rank = c(1:10), pvals, psig))
+p <- ggplot(data = d, aes(x = rank, y = pvals)) + geom_point() + geom_line(aes(x = rank, 
+    y = psig))
+p
+sig <- pvals <= psig  # vector of significant pvalues
+sig
+```
+We can also change the p values themselves instead of the alpha levels
+```{r adjusting p values}
+sig <- p.adjust(pvals, method = "bonferroni") <= 0.05
+sig
+sig <- p.adjust(pvals, method = "BH") <= 0.05
+sig
+```
+
+#Type II Error
+-reducing the alpha reduces the chances of a Type I error but it DIRECTLY increases the chance of a Type II error (incorrectly accepting the null)
+
+-we can't predict beta because we don't know where the distribution is truly centered; we can simulate what beta should look like under different Ha's, sample sizes, and alphas
+
+-we're doing the same type of thing function-wise as typeI(), where we specify mu(A) so we get different alternative hypotheses
+```{r type II function}
+typeII <- function(mu0, muA, sigma, n, alternative = "two.tailed", alpha = 0.05, 
+    k = 1000) {
+    p <- rep(NA, k)  # sets up a vector of empty p values
+    for (i in 1:k) {
+        x <- rnorm(n = n, mean = muA, sd = sigma)  # draw from Ha
+        m <- mean(x)
+        s <- sd(x)
+        z <- (m - mu0)/(s/sqrt(n))  # calculates the Z statistic for the sample drawn from Ha relative to the null distribution
+        if (alternative == "less") {
+            p[i] <- pnorm(z, lower.tail = TRUE)  # calculates the associated p value
+            hyp <- "muA < mu0"
+        }
+        if (alternative == "greater") {
+            p[i] <- pnorm(z, lower.tail = FALSE)
+            hyp <- "muA > mu0"
+        }
+        if (alternative == "two.tailed") {
+            if (z > 0) {
+                p[i] <- 2 * pnorm(z, lower.tail = FALSE)
+            }
+            if (z < 0) {
+                p[i] <- 2 * pnorm(z, lower.tail = TRUE)
+            }
+            hyp <- "muA ≠ mu0"
+        }
+    }
+    
+    curve(dnorm(x, mu0, sigma/sqrt(n)), mu0 - 4 * sigma/sqrt(n), mu0 + 4 * sigma/sqrt(n), 
+        main = paste("Sampling Distributions Under the Null (red)\nand Alternative Hypotheses (blue)\nType II error rate from simulation = ", 
+            length(p[p >= alpha])/k, sep = ""), xlab = "x", ylab = "Pr(x)", 
+        col = "red", xlim = c(min(c(mu0 - 4 * sigma/sqrt(n), muA - 4 * sigma/sqrt(n))), 
+            max(c(mu0 + 4 * sigma/sqrt(n), muA + 4 * sigma/sqrt(n)))), ylim = c(0, 
+            max(c(dnorm(mu0, mu0, sigma/sqrt(n))), dnorm(muA, muA, sigma/sqrt(n)))))
+    
+    curve(dnorm(x, muA, sigma/sqrt(n)), muA - 4 * sigma/sqrt(n), muA + 4 * sigma/sqrt(n), 
+        col = "blue", add = TRUE)
+    abline(h = 0)
+    
+    if (alternative == "less") {
+        polygon(cbind(c(mu0 - qnorm(1 - alpha) * sigma/sqrt(n), seq(from = mu0 - 
+            qnorm(1 - alpha) * sigma/sqrt(n), to = muA + 4 * sigma/sqrt(n), 
+            length.out = 100), muA + 4 * sigma/sqrt(n))), c(0, dnorm(seq(mu0 - 
+            qnorm(1 - alpha) * sigma/sqrt(n), to = muA + 4 * sigma/sqrt(n), 
+            length.out = 100), mean = muA, sd = sigma/sqrt(n)), 0), border = "black", 
+            col = "grey")
+        abline(v = mu0 - qnorm(1 - alpha) * sigma/sqrt(n), col = "black", lty = 3, 
+            lwd = 2)
+    }
+    
+    if (alternative == "greater") {
+        polygon(cbind(c(muA - 4 * sigma/sqrt(n), seq(from = muA - 4 * sigma/sqrt(n), 
+            to = mu0 + qnorm(1 - alpha) * sigma/sqrt(n), length.out = 100), 
+            mu0 + qnorm(1 - alpha) * sigma/sqrt(n))), c(0, dnorm(seq(from = muA - 
+            4 * sigma/sqrt(n), to = mu0 + qnorm(1 - alpha) * sigma/sqrt(n), 
+            length.out = 100), mean = muA, sd = sigma/sqrt(n)), 0), border = "black", 
+            col = "grey")
+        abline(v = mu0 + qnorm(1 - alpha) * sigma/sqrt(n), col = "black", lty = 3, 
+            lwd = 2)
+    }
+    
+    if (alternative == "two.tailed") {
+        abline(v = mu0 - qnorm(1 - alpha/2) * sigma/sqrt(n), col = "black", 
+            lty = 3, lwd = 2)
+        abline(v = mu0 + qnorm(1 - alpha/2) * sigma/sqrt(n), col = "black", 
+            lty = 3, lwd = 2)
+        
+        if (z > 0) {
+            # greater
+            polygon(cbind(c(muA - 4 * sigma/sqrt(n), seq(from = muA - 4 * sigma/sqrt(n), 
+                to = mu0 + qnorm(1 - alpha/2) * sigma/sqrt(n), length.out = 100), 
+                mu0 + qnorm(1 - alpha/2) * sigma/sqrt(n))), c(0, dnorm(seq(from = muA - 
+                4 * sigma/sqrt(n), to = mu0 + qnorm(1 - alpha/2) * sigma/sqrt(n), 
+                length.out = 100), mean = muA, sd = sigma/sqrt(n)), 0), border = "black", 
+                col = "grey")
+        }
+        
+        # less
+        if (z < 0) {
+            polygon(cbind(c(mu0 - qnorm(1 - alpha/2) * sigma/sqrt(n), seq(from = mu0 - 
+                qnorm(1 - alpha/2) * sigma/sqrt(n), to = muA + 4 * sigma/sqrt(n), 
+                length.out = 100), muA + 4 * sigma/sqrt(n))), c(0, dnorm(seq(mu0 - 
+                qnorm(1 - alpha/2) * sigma/sqrt(n), to = muA + 4 * sigma/sqrt(n), 
+                length.out = 100), mean = muA, sd = sigma/sqrt(n)), 0), border = "black", 
+                col = "grey")
+        }
+    }
+    
+    return(length(p[p >= alpha])/k)
+}
+```
+#Challenge
+```{r Changing muA values}
+eII <- typeII(mu0 = 2, muA = 4, sigma = 3, n = 6, alternative = "greater")
+eII <- typeII(mu0 = 2, muA = 0.2, sigma = 3, n = 6, alternative = "greater")
+eII <- typeII(mu0 = 2, muA = 20, sigma = 3, n = 6, alternative = "greater")
+```
+
+It looks like a larger muA decreases the likelihood of a Type II error? There's no gray area in the third graph because there's no overlap on the two curves
+
+```{r Changing sigma}
+eII <- typeII(mu0 = 2, muA = 4, sigma = 3, n = 6, alternative = "greater")
+eII <- typeII(mu0 = 2, muA = 4, sigma = 1, n = 6, alternative = "greater")
+eII <- typeII(mu0 = 2, muA = 4, sigma = 30, n = 6, alternative = "greater")
+```
+
+Smaller sigma results in smaller gray area, meaning decreased chance of Type II Error
+```{r Changing n}
+eII <- typeII(mu0 = 2, muA = 4, sigma = 3, n = 6, alternative = "greater")
+eII <- typeII(mu0 = 2, muA = 4, sigma = 3, n = 2, alternative = "greater")
+eII <- typeII(mu0 = 2, muA = 4, sigma = 3, n = 60, alternative = "greater")
+```
+
+Increasing n (sample size) decreases the chances of a Type II error...does this mean that beta is smaller?
+```{r one and two tailed tests}
+eII <- typeII(mu0 = 2, muA = 4, sigma = 3, n = 6, alternative = "greater")
+eII <- typeII(mu0 = 2, muA = 4, sigma = 3, n = 6, alternative = "two.tailed")
+eII <- typeII(mu0 = 2, muA = 4, sigma = 3, n = 6, alternative = "less")
+```
+
+I don't really understand what this means, "less" results in the whole alternative hypothesis curve being colored gray...does this mean that it's incredibly likely for a Type II Error? Or is it because in this case it would never be less because mu0 is less than the set muA?
+
+Two tailed has a larger gray area than the original one-tailed test...this makes sense in my head but I'm not sure I could explain why. Does it have something to do with looking at 2.5% of data on either end versus just one? (Like you don't know if muA or whatever is larger or smaller than mu0)
+
+**power** is the proability of correctly rejecting a null hypothesis; can be represented as 1-beta
+
+-power values of 0.8 or higher are high
+
+**effect size** is a standardized difference between the means of the groups being compared; indicator of the strength of a phenomenon
+
+-divide the difference between the means by the standard deviation
+
+-values of 0.2 or less are considered low and values of 0.8 and above are considered high
+```{r manipulating power and effect size}
+library(ggplot2)
+library(manipulate)
+power.plot <- function(sigma, muA, mu0, n, alpha, alternative = "two.tailed") {
+    pow <- 0
+    z <- (muA - mu0)/(sigma/sqrt(n))
+    g <- ggplot(data.frame(mu = c(min(mu0 - 4 * sigma/sqrt(n), muA - 4 * sigma/sqrt(n)), 
+        max(mu0 + 4 * sigma/sqrt(n), muA + 4 * sigma/sqrt(n)))), aes(x = mu)) + 
+        ggtitle("Explore Power for Z Test")
+    g <- g + ylim(c(0, max(dnorm(mu0, mu0, sigma/sqrt(n)) + 0.1, dnorm(muA, 
+        muA, sigma/sqrt(n)) + 0.1)))
+    g <- g + stat_function(fun = dnorm, geom = "line", args = list(mean = mu0, 
+        sd = sigma/sqrt(n)), size = 1, col = "red", show.legend = TRUE)
+    g <- g + stat_function(fun = dnorm, geom = "line", args = list(mean = muA, 
+        sd = sigma/sqrt(n)), size = 1, col = "blue", show.legend = TRUE)
+    
+    if (alternative == "greater") {
+        if (z > 0) {
+            xcrit = mu0 + qnorm(1 - alpha) * sigma/sqrt(n)
+            g <- g + geom_segment(x = xcrit, y = 0, xend = xcrit, yend = max(dnorm(mu0, 
+                mu0, sigma/sqrt(n)) + 0.025, dnorm(muA, muA, sigma/sqrt(n)) + 
+                0.025), size = 0.5, linetype = 3)
+            g <- g + geom_polygon(data = data.frame(cbind(x = c(xcrit, seq(from = xcrit, 
+                to = muA + 4 * sigma/sqrt(n), length.out = 100), muA + 4 * sigma/sqrt(n)), 
+                y = c(0, dnorm(seq(from = xcrit, to = muA + 4 * sigma/sqrt(n), 
+                  length.out = 100), mean = muA, sd = sigma/sqrt(n)), 0))), 
+                aes(x = x, y = y), fill = "blue", alpha = 0.5)
+            pow <- pnorm(muA + 4 * sigma/sqrt(n), muA, sigma/sqrt(n)) - pnorm(xcrit, 
+                muA, sigma/sqrt(n))
+        }
+    }
+    if (alternative == "less") {
+        if (z < 0) {
+            xcrit = mu0 - qnorm(1 - alpha) * sigma/sqrt(n)
+            g <- g + geom_segment(x = xcrit, y = 0, xend = xcrit, yend = max(dnorm(mu0, 
+                mu0, sigma/sqrt(n)) + 0.025, dnorm(muA, muA, sigma/sqrt(n)) + 
+                0.025), size = 0.5, linetype = 3)
+            g <- g + geom_polygon(data = data.frame(cbind(x = c(muA - 4 * sigma/sqrt(n), 
+                seq(from = muA - 4 * sigma/sqrt(n), to = xcrit, length.out = 100), 
+                xcrit), y = c(0, dnorm(seq(from = muA - 4 * sigma/sqrt(n), to = xcrit, 
+                length.out = 100), mean = muA, sd = sigma/sqrt(n)), 0))), aes(x = x, 
+                y = y), fill = "blue", alpha = 0.5)
+            pow <- pnorm(xcrit, muA, sigma/sqrt(n)) - pnorm(muA - 4 * sigma/sqrt(n), 
+                muA, sigma/sqrt(n))
+        }
+    }
+    if (alternative == "two.tailed") {
+        if (z > 0) {
+            xcrit = mu0 + qnorm(1 - alpha/2) * sigma/sqrt(n)
+            g <- g + geom_segment(x = xcrit, y = 0, xend = xcrit, yend = max(dnorm(mu0, 
+                mu0, sigma/sqrt(n)) + 0.025, dnorm(muA, muA, sigma/sqrt(n)) + 
+                0.025), size = 0.5, linetype = 3)
+            g <- g + geom_polygon(data = data.frame(cbind(x = c(xcrit, seq(from = xcrit, 
+                to = muA + 4 * sigma/sqrt(n), length.out = 100), muA + 4 * sigma/sqrt(n)), 
+                y = c(0, dnorm(seq(from = xcrit, to = muA + 4 * sigma/sqrt(n), 
+                  length.out = 100), mean = muA, sd = sigma/sqrt(n)), 0))), 
+                aes(x = x, y = y), fill = "blue", alpha = 0.5)
+            pow <- pnorm(muA + 4 * sigma/sqrt(n), muA, sigma/sqrt(n)) - pnorm(xcrit, 
+                muA, sigma/sqrt(n))
+        }
+        if (z < 0) {
+            xcrit = mu0 - qnorm(1 - alpha/2) * sigma/sqrt(n)
+            g <- g + geom_segment(x = xcrit, y = 0, xend = xcrit, yend = max(dnorm(mu0, 
+                mu0, sigma/sqrt(n)) + 0.025, dnorm(muA, muA, sigma/sqrt(n)) + 
+                0.025), size = 0.5, linetype = 3)
+            g <- g + geom_polygon(data = data.frame(cbind(x = c(muA - 4 * sigma/sqrt(n), 
+                seq(from = muA - 4 * sigma/sqrt(n), to = xcrit, length.out = 100), 
+                xcrit), y = c(0, dnorm(seq(from = muA - 4 * sigma/sqrt(n), to = xcrit, 
+                length.out = 100), mean = muA, sd = sigma/sqrt(n)), 0))), aes(x = x, 
+                y = y), fill = "blue", alpha = 0.5)
+            pow <- pnorm(xcrit, muA, sigma/sqrt(n)) - pnorm(muA - 4 * sigma/sqrt(n), 
+                muA, sigma/sqrt(n))
+        }
+    }
+    g <- g + annotate("text", x = max(mu0, muA) + 2 * sigma/sqrt(n), y = max(dnorm(mu0, 
+        mu0, sigma/sqrt(n)) + 0.075, dnorm(muA, muA, sigma/sqrt(n)) + 0.075), 
+        label = paste("Effect Size = ", round((muA - mu0)/sigma, digits = 3), 
+            "\nPower = ", round(pow, digits = 3), sep = ""))
+    g <- g + annotate("text", x = min(mu0, muA) - 2 * sigma/sqrt(n), y = max(dnorm(mu0, 
+        mu0, sigma/sqrt(n)) + 0.075, dnorm(muA, muA, sigma/sqrt(n)) + 0.075), 
+        label = "Red = mu0\nBlue = muA")
+    g
+}
+manipulate(power.plot(sigma, muA, mu0, n, alpha, alternative), sigma = slider(1, 
+    10, step = 1, initial = 4), muA = slider(-10, 10, step = 1, initial = 2), 
+    mu0 = slider(-10, 10, step = 1, initial = 0), n = slider(1, 50, step = 1, 
+        initial = 16), alpha = slider(0.01, 0.1, step = 0.01, initial = 0.05), 
+    alternative = picker("two.tailed", "greater", "less"))
+```
+
+power.t.test() gives us calculations based on a t distribution (what we will normally be using)
+#Challenge
+```{r}
+library(ggplot2)
+library(manipulate)
+power.test <- function(mu0, muA, sigma, alpha = 0.05, type, alternative) {
+    p <- 0
+    for (i in 2:200) {
+        x <- power.t.test(n = i, delta = abs(muA - mu0), sd = sigma, sig.level = alpha, 
+            power = NULL, type = type, alternative = alternative)
+        p <- c(p, x$power)
+    }
+    d <- data.frame(cbind(1:200, p, 1 - p))
+    critn <- 0
+    for (i in 1:199) {
+        if (p[i] < 0.8 && p[i + 1] >= 0.8) {
+            critn <- i + 1
+        } else {
+            critn <- critn
+        }
+    }
+    names(d) <- c("n", "power", "beta")
+    g <- ggplot(data = d) + xlab("sample size n") + ylab("Type II Error Rate, Beta  (Red)\nand\nPower, 1-Beta (Blue)") + 
+        ggtitle("Power for T Tests\n(assuming equal n and variance across the two groups)") + 
+        ylim(0, 1) + geom_point(aes(x = n, y = power), colour = "blue", alpha = 1/2) + 
+        geom_line(aes(x = n, y = power), colour = "blue", alpha = 1/2) + geom_line(aes(x = n, 
+        y = 0.8), colour = "red", lty = 3) + geom_point(aes(x = n, y = beta), 
+        colour = "red", alpha = 1/2) + geom_line(aes(x = n, y = beta), colour = "red", 
+        alpha = 1/2) + geom_linerange(aes(x = critn, ymin = 0, ymax = 0.8), 
+        colour = "blue", alpha = 1/4) + annotate("text", x = 150, y = 0.5, label = paste("Effect Size = ", 
+        round(abs(mu0 - muA)/sigma, digits = 3), "\nCritical n = ", critn, sep = ""))
+    print(g)
+}
+manipulate(power.test(mu0, muA, sigma, alpha, type, alternative), mu0 = slider(-10, 
+    10, initial = 3, step = 1), muA = slider(-10, 10, initial = 0, step = 1), 
+    sigma = slider(1, 10, initial = 3, step = 1), alpha = slider(0.01, 0.1, 
+        initial = 0.05, step = 0.01), alternative = picker("two.sided", "one.sided"), 
+    type = picker("two.sample", "one.sample", "paired"))
+```
+
