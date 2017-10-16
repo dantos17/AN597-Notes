@@ -1,0 +1,307 @@
+---
+title: "Module12 Notes"
+author: "Dani Antos"
+date: "October 12, 2017"
+output: html_document
+---
+
+Regression modeling is a very good tool for looking at relationships among multiple variables
+```{r}
+library(curl)
+library(ggplot2)
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/zombies.csv")
+d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+head(d)
+plot(data = d, height ~ weight)
+```
+
+The graph shows that these variables are related, but how can we quantify that?
+**covariance** shows how much two variables change together and whether the change is positive or negative
+
+If the variance is the sum of sd^2/(n-1) for a sample, then covariance is the sum of sd(X)*sd(Y)/(n-1)
+#Challenge
+```{r covariance}
+w <- d$weight
+h <- d$height
+n <- length(w)  # or length(h)
+cov_wh <- sum((w - mean(w)) * (h - mean(h)))/(n - 1)
+cov_wh
+cov(w, h) #r function for covariance
+```
+Since it's the product of the standard deviations, it shouldn't matter if you switch the order of the variables. Positive means that as one variable increases so does the other one; negative covariance would represent an inverse relationship.
+
+**correlation coefficient** is another way to describe the relationship between to variables-- it is a standardized form of covariance
+
+-correlation coefficient is the covariance/sd(X)*sd(Y) [not the sum of sd]
+
+#challenge
+```{r correlation coefficient}
+sd_w <- sd(w)
+sd_h <- sd(h)
+cor_wh <- cov_wh/(sd_w * sd_h)
+cor_wh
+cor(w, h) #r function for correlation
+#different nonparametric forms of the correlation coefficient
+cor(w, h, method = "pearson")
+cor(w, h, method = "kendall")
+cor(w, h, method = "spearman")
+```
+
+#Regression
+Regression models can be useful in comparing two variables because you can (1) use one variable to predict the value of another (2) choose among different models of the relationship (3) analyze the covariation of sets of variables to define their explanatory power
+
+**bivariate regression** has two variables, one predictor and one response variable
+
+-we are using zombie weight as the predictor and zombie height as the response
+
+Y=B(o)+B(1)X+e
+
+B(o) is the intercept, B(1) is the slope, and e is the error term with the sd assumed to be constant for all values of X
+
+-B(o) and B(1) are the regression coefficients, so the regression is trying to estimate those values while minimizing "e" == process called "fitting the model"
+
+-we want a B(o) and B(1) that minimize the sum of (y-yhat)^2
+```{r regression model}
+y <- h - mean(h)
+x <- w - mean(w)
+z <- data.frame(cbind(x, y))
+g <- ggplot(data = z, aes(x = x, y = y)) + geom_point()
+g
+slope.test <- function(beta1) {
+    g <- ggplot(data = z, aes(x = x, y = y))
+    g <- g + geom_point()
+    g <- g + geom_abline(intercept = 0, slope = beta1, size = 1, colour = "blue", 
+        alpha = 1/2)
+    ols <- sum((y - beta1 * x)^2)
+    g <- g + ggtitle(paste("Slope = ", beta1, "\nSum of Squared Deviations = ", 
+        round(ols, 3)))
+    g
+}
+manipulate(slope.test(beta1), beta1 = slider(-1, 1, initial = 0, step = 0.005))
+#another way, see Book of R
+beta1 <- cor(w, h) * (sd(h)/sd(w))
+beta1
+beta1 <- cov(w, h)/var(w)
+beta1
+beta1 <- sum((h - mean(h)) * (w - mean(w)))/sum((w - mean(w))^2)
+beta1
+#once we get B(1) we can plug back into the regression equation to bet B(o)
+beta0 <- mean(h) - beta1 * mean(w)
+beta0
+```
+
+**Model I regression**: model where deviation is measured perpindicular to one of the axes
+
+-used when the predictor variable is measured without error or set by the researcher
+
+lm() function does all the calculations for a Model I regression
+```{r lm function}
+m <- lm(height ~ weight, data = d)
+m
+names(m)
+m$coefficients
+head(m$model)
+#now we can make a plot that adds the linear model and confidence interval to the original plot
+g <- ggplot(data = d, aes(x = weight, y = height))
+g <- g + geom_point()
+g <- g + geom_smooth(method = "lm", formula = y ~ x)
+g
+```
+
+**Model II Regression**: instead of assuming that the predictor variable is without error, we want to treat X and Y as independent variables to see how they co-vary in response to another variable
+
+-we choose a line of best fit; common approaches are major axis, ranged major axis, and reduced major axis
+
+-the {lmodel2} package lets us do both model regressions easily
+```{r lmodel2 package}
+library(lmodel2)  # load the lmodel2 package
+# Run the regression
+mII <- lmodel2(height ~ weight, data = d, range.y = "relative", range.x = "relative", 
+    nperm = 1000)
+mII
+plot(mII, "OLS")
+plot(mII, "RMA")
+plot(mII, "SMA")
+plot(mII, "MA")
+mI <- lm(height ~ weight, data = d)
+summary(mI) #gives the same results as using lmodel2 and OLS
+par(mfrow = c(1, 2))
+plot(mII, main = "lmodel2() OLS")
+plot(data = d, height ~ weight, main = "lm()")
+abline(mI)
+```
+
+#Challenge
+```{r}
+plot(data = d, height ~ age)
+head(d)
+beta1 <- cor(d$height, d$age) * sd(d$height)/sd(d$age)
+beta1
+beta0 <- mean(d$height) - beta1 * mean(d$age)
+beta0
+m <- lm(height ~ age, data = d)
+m
+```
+
+**statistical evidence** is needed after we get the linear model and regression coefficients; shows that there actually is a relationship between the variables
+
+-we want to extend our estimates from the sample to the population
+
+-involves steps of statistical inference
+
+-lm() output is really useful for this
+```{r statistical evidence}
+m <- lm(data = d, height ~ weight)
+summary(m)
+```
+
+-R squared value is also called the coefficient of determination--amount of variation in the y variable that is explained by the x variable
+
+-standard error of each regression coefficient, as well as the t-value and p-value are also provided in the summary
+
+-in this case, the p value comes from "evaluating the magnitude of the t statistic against a t distribution", uses n-2 degrees of freedom
+```{r t value and p value}
+t <- coef(summary(m))
+t <- data.frame(unlist(t))
+colnames(t) <- c("Est", "SE", "t", "p")
+t
+t$calct <- (t$Est - 0)/t$SE
+t$calcp <- 2 * pt(t$calct, df = 998, lower.tail = FALSE)  # x2 because is 2-tailed test
+t
+t$lower <- t$Est - qt(0.975, df = 998) * t$SE
+t$upper <- t$Est + qt(0.975, df = 998) * t$SE
+ci <- c(t$lower, t$upper)  # by hand
+ci #getting confidence interval by hand
+ci <- confint(m, level = 0.95)  # using the results of lm()
+ci
+```
+
+what do these values mean?
+
+1. B(o) is the intercept, aka the predicted value of Y when X=0
+
+2. B(1) is the slope, aka the expected change in Y for every 1 unit change in X
+
+3. The equation as a whole lets us calculate Y values for a particular value of X
+
+4. We can calculate **confidence** intervals around a predicted value of Y for each value of X--addresses the uncertainty of the value
+
+5. We can calculate **prediction** intervals around our prediction--gives range of Y values that we would actually expect at a given X
+#Challenge
+```{r}
+#x would be 150, we want to find Y
+beta0 <- t$Est[1] #intercept
+beta1 <- t$Est[2] #slope
+h_hat <- beta1*150 + beta0
+h_hat
+#predicted difference in height between a zombie at 180 lbs and a zombie at 220 lbs
+h_hat220 <- beta1*220 + beta0
+h_hat180 <- beta1*180 + beta0
+h_diff <- h_hat220 - h_hat180
+h_diff
+#chris's code
+h_hat_difference <- (beta1 * 220 + beta0) - (beta1 * 180 + beta0)
+h_hat_difference
+```
+
+predict() can let us generate predicted values for a vector of values for X
+```{r predict function}
+m <- lm(data = d, height ~ weight)
+h_hat <- predict(m, newdata = data.frame(weight = d$weight))
+df <- data.frame(cbind(d$weight, d$height, h_hat))
+names(df) <- c("x", "y", "yhat")
+head(df)
+g <- ggplot(data = df, aes(x = x, y = yhat))
+g <- g + geom_point()
+g <- g + geom_point(aes(x = x, y = y), colour = "red")
+g <- g + geom_segment(aes(x = x, y = yhat, xend = x, yend = y))
+g 
+```
+
+Vertical lines are residuals between the observed and predicted Y values (which we can do because we have an actual dataset of Y values)
+
+To my understanding, the red dots are the actual values and  the black dots are the predicted?
+
+You can also use predict() to generate confidence intervals for a single predicted value or a vector of values
+```{r predict() confidence intervals}
+ci <- predict(m, newdata = data.frame(weight = 150), interval = "confidence", 
+    level = 0.95)  # for a single value
+ci
+ci <- predict(m, newdata = data.frame(weight = d$weight), interval = "confidence", 
+    level = 0.95)  # for a vector of values
+head(ci)
+df <- cbind(df, ci)
+names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr")
+head(df)
+g <- ggplot(data = df, aes(x = x, y = y))
+g <- g + geom_point(alpha = 1/2)
+g <- g + geom_line(aes(x = x, y = CIfit), colour = "black")
+g <- g + geom_line(aes(x = x, y = CIlwr), colour = "blue")
+g <- g + geom_line(aes(x = x, y = CIupr), colour = "blue")
+g
+```
+
+We can also use predict() to calculate prediction intervals for values of Y at each X
+```{r predict() prediction intervals}
+pi <- predict(m, newdata = data.frame(weight = 150), interval = "prediction", 
+    level = 0.95)  # for a single value
+pi
+pi <- predict(m, newdata = data.frame(weight = d$weight), interval = "prediction", 
+    level = 0.95)  # for a vector of values
+head(pi)
+df <- cbind(df, pi) #df is values plus confidence intervals
+names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr", "PIfit", "PIlwr", 
+    "PIupr")
+head(df)
+g <- g + geom_line(data = df, aes(x = x, y = PIlwr), colour = "red")
+g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red")
+g
+```
+
+#Challenge
+```{r linear model height on age}
+m <- lm(data = d, height ~ age)
+h_hat <- predict(m, newdata = data.frame(age = d$age))
+df <- data.frame(cbind(d$age, d$height, h_hat))
+names(df) <- c("x", "y", "yhat")
+head(df)
+ci <- predict(m, newdata = data.frame(age = d$age), interval = "confidence", 
+    level = 0.95)  # for a vector of values
+head(ci)
+df <- cbind(df, ci)
+names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr")
+head(df)
+##i'm stopping, I didn't do the age interval and got lost
+#chris's code
+v <- seq(from = 10, to = 30, by = 1)
+m <- lm(data = d, height ~ age)
+ci <- predict(m, newdata = data.frame(age = v), interval = "confidence", level = 0.95)
+pi <- predict(m, newdata = data.frame(age = v), interval = "prediction", level = 0.95)
+plot(data = d, height ~ age)
+lines(x = v, y = ci[, 1], col = "black")
+lines(x = v, y = ci[, 2], col = "blue")
+lines(x = v, y = ci[, 3], col = "blue")
+lines(x = v, y = pi[, 2], col = "red")
+lines(x = v, y = pi[, 3], col = "red")
+```
+
+Alternative method using gridExtra{} package
+```{r}
+require(gridExtra)
+require(ggplot2)
+df <- data.frame(cbind(v, ci, pi))
+names(df) <- c("age", "CIfit", "CIlwr", "CIupr", "PIfit", "PIlwr", "PIupr")
+head(df)
+g1 <- ggplot(data = d, aes(x = age, y = height))
+g1 <- g1 + geom_point(alpha = 1/2)
+g1 <- g1 + geom_line(data = df, aes(x = v, y = CIfit), colour = "black", lwd = 1)
+g1 <- g1 + geom_line(data = df, aes(x = v, y = CIlwr), colour = "blue")
+g1 <- g1 + geom_line(data = df, aes(x = v, y = CIupr), colour = "blue")
+g1 <- g1 + geom_line(data = df, aes(x = v, y = PIlwr), colour = "red")
+g1 <- g1 + geom_line(data = df, aes(x = v, y = PIupr), colour = "red")
+g2 <- ggplot(data = d, aes(x = age, y = height))
+g2 <- g2 + geom_point(alpha = 1/2)
+g2 <- g2 + geom_smooth(method = "lm", formula = y ~ x)
+grid.arrange(g1, g2, ncol = 2)
+```
+
