@@ -14,17 +14,19 @@ library(manipulate)
 
 Recap:
 
--Type I error: falsely reject the null; the probability of this error is equal to alpha (the significance level)
+-Type I error: falsely reject the null; the probability of this error is equal to alpha (the significance level) ie. finding someone guilty when they're innocent
 
--we can decrease the chance of this   error by decreasing alpha
+-we can decrease the chance of this error by decreasing alpha
 
--Type II error: falsely accept the null, probability of this error is called beta, and we usually don't have a specific value for it
+-Type II error: falsely accept the null, probability of this error is called beta, and we usually don't have a specific value for it (less dire)
+
+-everything is in relation to the null
 
 #Type I Error
 typeI() will evaluate the Type I error rate
 ```{r Type 1 error function}
 typeI <- function(mu0, sigma, n, alternative = "two.tailed", alpha = 0.05, k = 10000) {
-}
+} #why it's a bad idea to run multiple tests
 typeI <- function(mu0, sigma, n, alternative = "two.tailed", alpha = 0.05, k = 1000) {
     p <- rep(NA, k)  # sets up a vector of empty p values
     for (i in 1:k) {
@@ -113,7 +115,7 @@ eI <- typeI(mu0 = 5, sigma = 2, n = 1000, alternative = "less", alpha = 0.01)
 I'm still getting nothing, it's saying incomplete expression (jk I got it, not sure why it worked the second time)
 
 #Challenge
-From the two coding chunks above it looks like Type I error increases as "n" increases but I will check.
+From the two coding chunks above it looks like Type I error decreases as "n" increases but I will check.
 ```{r}
 eI <- typeI(mu0 = 5, sigma = 2, n = 1000, alternative = "less", alpha = 0.01)
 eI <- typeI(mu0 = 5, sigma = 2, n = 2000, alternative = "less", alpha = 0.01)
@@ -129,7 +131,7 @@ eI <- typeI(mu0 = 5, sigma = 5, n = 1000, alternative = "less", alpha = 0.01)
 eI <- typeI(mu0 = 5, sigma = 100, n = 1000, alternative = "less", alpha = 0.01)
 ```
 
-So I guess the only thing that should change the ype I error rate would be alpha.
+So I guess the only thing that should change the Type I error rate would be alpha.
 ```{r}
 eI <- typeI(mu0 = 5, sigma = 2, n = 1000, alternative = "less", alpha = 0.01)
 eI <- typeI(mu0 = 5, sigma = 2, n = 1000, alternative = "less", alpha = 0.05)
@@ -156,7 +158,7 @@ sig  # first 3 values are less than the adjusted alpha
 
 **Benjamini & Hochberg correction** is less conservative than Bonferroni
 
--goal of this one is to control the FDR (in this case incorrect rejections of the null) 
+-goal of this one is to control the FDR (in this case incorrect rejections of the null); more of a weed-out
 ```{r Benjamini and Hochberg}
 library(ggplot2)
 alpha <- 0.05
@@ -182,6 +184,8 @@ sig
 
 #Type II Error
 -reducing the alpha reduces the chances of a Type I error but it DIRECTLY increases the chance of a Type II error (incorrectly accepting the null)
+
+-any part of the alternative distribution that's below the critical value
 
 -we can't predict beta because we don't know where the distribution is truly centered; we can simulate what beta should look like under different Ha's, sample sizes, and alphas
 
@@ -314,7 +318,7 @@ Two tailed has a larger gray area than the original one-tailed test...this makes
 
 -power values of 0.8 or higher are high
 
-**effect size** is a standardized difference between the means of the groups being compared; indicator of the strength of a phenomenon
+**effect size** is a standardized difference between the means of the groups being compared; indicator of the strength of a phenomenon; quantify the effect
 
 -divide the difference between the means by the standard deviation
 
