@@ -34,7 +34,7 @@ Since it's the product of the standard deviations, it shouldn't matter if you sw
 
 -correlation coefficient is the covariance/sd(X)*sd(Y) [not the sum of sd]
 
-#challenge
+#Challenge
 ```{r correlation coefficient}
 sd_w <- sd(w)
 sd_h <- sd(h)
@@ -92,11 +92,11 @@ beta0
 
 **Model I regression**: model where deviation is measured perpindicular to one of the axes
 
--used when the predictor variable is measured without error or set by the researcher
+-used when the predictor variable is measured without error or set by the researcher (ie age, date, etc.)
 
 lm() function does all the calculations for a Model I regression
 ```{r lm function}
-m <- lm(height ~ weight, data = d)
+m <- lm(height ~ weight, data = d) #response on left, predictor on right
 m
 names(m)
 m$coefficients
