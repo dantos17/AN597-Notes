@@ -23,7 +23,7 @@ SSE <- sum((m$model$height - m$fitted.values)^2)  # height - predicted height
 SSE
 ```
 An ANOVA table is a summary of how variance is partitioned for a model. Now that we have SSY, SSR, and SSE, we need to calculate the variance in each of them.
-
+ 
 - divide the sum of squares/df
 
 - df for SSR = number of predictor variables (in our case, 1)
