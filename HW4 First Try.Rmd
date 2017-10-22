@@ -4,8 +4,7 @@ author: "Dani Antos"
 date: "October 17, 2017"
 output: html_document
 ---
-
-I'm starting with question 2 because I can't even comprehend Question 1
+Just a preface, I have code for two different functions in question 1, and the second part of question 2 got a little funky at the end.
 
 #Question 1
 ```{r}
@@ -82,6 +81,10 @@ else {
 		 conf.int = ci)
     return(RVAL) }
 ```
+So this code works, but doesn't do anything if you don't specify "alternative =", so the following code is my idea for fixing it. Instead of doing an if, else loop for the one sample and two sample tests, I made an if, if, else loop for the alternative options (setting up "else" to be the two sided test). Then within each of those loops, I made another if, else loop corresponding to the number of samples. That stil didn't work, and I couldn't find any helpful answers when I googled how to set a default in a function.
+```{r}
+
+```
 
 
 #Question 2
@@ -93,11 +96,6 @@ f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/m
 d <- read.csv(f, header = TRUE, stringsAsFactors = FALSE)
 head(d)
 names(d)
-plot(data=d, MaxLongevity_m ~ Brain_Size_Species_Mean)
-l <- d$MaxLongevity_m
-b <- d$Brain_Size_Species_Mean
-m <- lm(MaxLongevity_m ~ Brain_Size_Species_Mean, data=d) #regular data
-m
 m <- lm(data = d, MaxLongevity_m ~ Brain_Size_Species_Mean)
 h_hat <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean))
 df <- data.frame(cbind(d$Brain_Size_Species_Mean, d$MaxLongevity_m, h_hat))
@@ -118,15 +116,23 @@ names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr", "PIfit", "PIlwr",
 head(df)
 
 
-g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m)) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=400, y=350, aes(label = "1.218x + 248.952")) + geom_line(data=df, aes(x = x, y = CIlwr)) + geom_line(data=df, aes(x = x, y = CIupr)) + geom_line(data = df, aes(x = x, y = PIlwr)) + geom_line(data = df, aes(x = x, y = PIupr)) + scale_color_manual("", breaks = c("CIUpper", "CILower", "PIUpper", "PILower"), values = c("CIUpper"="blue", "CILower"="blue", "PIUpper"="red", "PILower"="red"))
+g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m)) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=400, y=400, aes(label = "1.218x + 248.952")) + geom_line(data=df, aes(x = x, y = CIlwr)) + geom_line(data=df, aes(x = x, y = CIupr)) + geom_line(data = df, aes(x = x, y = PIlwr)) + geom_line(data = df, aes(x = x, y = PIupr)) + scale_color_manual("", breaks = c("CIUpper", "CILower", "PIUpper", "PILower"), values = c("CIUpper"="blue", "CILower"="blue", "PIUpper"="red", "PILower"="red")) #I read on stack overflow that scale_color_manual can be used to make a legend so I wrote my ggplot code exactly like the example did, and the only thing that changed was the color of my lines
 g
 g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m))
 g <- g + geom_point()
-g <- g + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=400, y=350, aes(label = "1.218x + 248.952"))
+g <- g + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=400, y=400, aes(label = "1.218x + 248.952"))
 g <- g + geom_line(data=df, aes(x = x, y = CIlwr), colour = "blue")
 g <- g + geom_line(data=df, aes(x = x, y = CIupr), colour = "blue")
 g <- g + geom_line(data = df, aes(x = x, y = PIlwr), colour = "red")
-g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red") + legend("right", c("CILower","CIUpper","PILower","PIUpper"))
+g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red") + legend("right", c("CILower","CIUpper","PILower","PIUpper")) #you used this in Module 13, and I know you weren't using ggplot but I couldn't get anything else to work so I tried it here as well.
+g
+g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m))
+g <- g + geom_point()
+g <- g + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=400, y=400, aes(label = "1.218x + 248.952"))
+g <- g + geom_line(data=df, aes(x = x, y = CIlwr), colour = "blue")
+g <- g + geom_line(data=df, aes(x = x, y = CIupr), colour = "blue")
+g <- g + geom_line(data = df, aes(x = x, y = PIlwr), colour = "red")
+g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red")
 g
 yhat <- (1.218*800) + 248.952
 yhat
@@ -137,21 +143,21 @@ pi
 
 Model for log(Max Longevity) ~ log(Brain Size)
 ```{r}
-l <- log(d$MaxLongevity_m)
-b <- log(d$Brain_Size_Species_Mean)
-m <- lm(log(MaxLongevity_m) ~ log(Brain_Size_Species_Mean), data=d) #log
+d$MaxLongevity_m <- log(d$MaxLongevity_m)
+d$Brain_Size_Species_Mean <- log(d$Brain_Size_Species_Mean)
+m <- lm(d$MaxLongevity_m ~ d$Brain_Size_Species_Mean, data=d) #log
 m
-h_hat <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = b))
-df <- data.frame(cbind(b, l, h_hat))
+h_hat <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean))
+df <- data.frame(cbind(d$Brain_Size_Species_Mean, d$MaxLongevity_m, h_hat))
 names(df) <- c("x", "y", "yhat")
 head(df)
-ci <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = b), interval = "confidence", 
-    level = 0.90)
+ci <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean), interval = "confidence", 
+    level = 0.90) 
 head(ci)
 df <- cbind(df, ci)
 names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr")
 head(df)
-pi <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = b), interval = "prediction", 
+pi <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean), interval = "prediction", 
     level = 0.90) 
 head(pi)
 df <- cbind(df, pi)
@@ -160,18 +166,20 @@ names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr", "PIfit", "PIlwr",
 head(df)
 
 g <- ggplot(data = d, aes(x = log(Brain_Size_Species_Mean), y = log(MaxLongevity_m))) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=5, y=5.5, aes(label = "0.2341x + 4.8790")) + geom_line(data=df, aes(x = x, y = CIlwr)) + geom_line(data=df, aes(x = x, y = CIupr)) + geom_line(data = df, aes(x = x, y = PIlwr)) + geom_line(data = df, aes(x = x, y = PIupr)) + scale_color_manual("", breaks = c("CIUpper", "CILower", "PIUpper", "PILower"), values = c("CIUpper"="blue", "CILower"="blue", "PIUpper"="red", "PILower"="red"))
-g
+g #I read on stack overflow that scale_color_manual can be used to make a legend so I wrote my ggplot code exactly like the example did, and the only thing that changed was the color of my lines
+
+g <- ggplot(data = d, aes(x = log(Brain_Size_Species_Mean), y = log(MaxLongevity_m)))
 g <- g + geom_point()
 g <- g + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=5, y=5.5, aes(label = "0.2341x + 4.8790"))
 g <- g + geom_line(data=df, aes(x = x, y = CIlwr), colour = "blue")
 g <- g + geom_line(data=df, aes(x = x, y = CIupr), colour = "blue")
 g <- g + geom_line(data = df, aes(x = x, y = PIlwr), colour = "red")
 g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red")
-g
+g #something is going wrong here but I don't know how to fix it, I think I've gone through every step of my code.
 yhat <- (0.2341*800) + 4.8790
 yhat
 pi <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = 800), interval = "prediction", 
     level = 0.90)
-pi
+pi #this worked before but it isn't now, and I'm just getting very frustrated after working on this for over 6 hours so I'm leaving it here.
 ```
 
