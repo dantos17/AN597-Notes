@@ -1,0 +1,236 @@
+---
+title: "Module13 Notes"
+author: "Dani Antos"
+date: "October 21, 2017"
+output: html_document
+---
+
+In a linear model:
+
+-we can separate the total variation in Y (aka the sum of squares fo y, SSY) into (1) what is explained by the model (aka the regression sum of squares, SSR) and (2) the leftover "error" variation (aka the error sum of squares, SSE)
+
+-as expected, SSY= SSR + SSE
+```{r zombie data}
+library(curl)
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/zombies.csv")
+d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+m <- lm(data = d, height ~ weight)
+SSY <- sum((m$model$height - mean(m$model$height))^2)  # height - mean(height)
+SSY
+SSR <- sum((m$fitted.values - mean(m$model$height))^2)  # predicted height - mean height
+SSR
+SSE <- sum((m$model$height - m$fitted.values)^2)  # height - predicted height
+SSE
+```
+An ANOVA table is a summary of how variance is partitioned for a model. Now that we have SSY, SSR, and SSE, we need to calculate the variance in each of them.
+
+- divide the sum of squares/df
+
+- df for SSR = number of predictor variables (in our case, 1)
+
+- df for SSE = n-2 (because of beta0 and beta1 estimates)
+
+- df for SSY = n-1 (we have to estimate the mean before getting SSY)
+```{r mean square}
+df_regression <- 1
+df_error <- 998
+df_y <- 999
+MSR <- SSR/df_regression
+MSE <- SSE/df_error
+MSY <- SSY/df_y
+fratio <- MSR/MSE
+fratio
+```
+**F ratio** is the ratio of the variance explained by the regression model to the unexplained variance, aka MSR/MSE (mean squares, ss/df)
+
+[He has a fancy table in the module but there's no code for it, so it's not happening here.]
+
+-we use the F ratio to test overall significance of the regression model: compare the F ratio against the F distribution
+
+-F distribution: continuous probability distribution when x is greater than or equal to 0; governed by df1 and df2
+
+-**critical value** = qf(p, df1, df2), above which we would REJECT that the variance in our two sources is comparable
+
+  -p = 1-alpha
+  
+  -df1 and df2 are from the two sources being compared (regression and error)
+```{r F ratio and distribution}
+curve(df(x, df = 1, df2 = 1), col = "green", lty = 3, lwd = 2, xlim = c(0, 10), 
+    main = "Some Example F Distributions\n(vertical line shows critical value for df1=1,df2=998)", 
+    ylab = "f(x)", xlab = "x")
+curve(df(x, df = 2, df2 = 2), col = "blue", lty = 3, lwd = 2, add = TRUE)
+curve(df(x, df = 4, df2 = 4), col = "red", lty = 3, lwd = 2, add = TRUE)
+curve(df(x, df = 8, df2 = 6), col = "purple", lty = 3, lwd = 2, add = TRUE)
+curve(df(x, df = 1, df2 = 998), col = "black", lwd = 3, add = TRUE)
+legend("top", c("df1=1,df2=1", "df1=2,df2=2", "df1=4,df2=4", "df1=8,df2=6", 
+    "df1=1,df2=998"), lty = 3, lwd = 2, col = c("green", "blue", "red", "purple", 
+    "black"), bty = "n", cex = 0.75)
+
+fcrit <- qf(p = 0.95, df1 = 1, df2 = 998)
+fcrit
+abline(v = fcrit)
+abline(h = 0)
+polygon(cbind(c(fcrit, seq(from = fcrit, to = 10, length.out = 1000), 8), c(0, 
+    df(seq(from = fcrit, to = 8, length.out = 1000), df1 = 1, df2 = 998), 0)), 
+    border = "black", col = "grey")
+#alternative
+1 - pf(q = fratio, df1 = 1, df2 = 998)
+```
+For our data, the F ratio exceeds the critical value. We can also just estimate a p value for the F ratio, and find that the p value is 0.
+
+What luck! There is a built-in function that does all this for us. We can either use the aov() function and the summary() function OR the summary.aov() function
+```{r aov() function}
+a <- aov(data = d, height ~ weight)
+summary(a)
+summary.aov(m)
+rsquared <- SSR/SSY
+rsquared
+rho <- sqrt(rsquared)
+rho
+```
+
+the R squared value is just SSR/SSY. The correlation coefficient (rho) is the square root of this value. 
+
+##Standard Error of Coefficients
+lm() gives the standard errors of each component in the regression but we can also calculate them by hand.
+
+- SE for beta1 = square root of MSE/SSX
+
+- SE for beta0 = square root of (MSE x ss)/(n x SSX)
+
+- SE for each yhat = square root of MSE x [(1/n) + (x-meanx)^2/SSX]
+```{r standard error}
+SSX <- sum((m$model$weight - mean(m$model$weight))^2)
+SEbeta1 <- sqrt(MSE/SSX)
+SEbeta1
+SEbeta0 <- sqrt((MSE * sum(m$model$weight^2))/(1000 * SSX))
+SEbeta0
+SEyhat <- sqrt(MSE * (1/1000 + (m$model$weight - mean(m$model$weight))^2/SSX))
+head(SEyhat) #I'm getting an error, returning NaN
+summary(m) #from lm function
+```
+
+#Model Checking
+Another important thing we need to do is check that the assumptions of linear modeling are met: (1) the residuals are normally distributed, (2) there is a constant variance in Y values across the range of X values
+
+##Challenge
+```{r}
+m <- lm(data=d, height ~ weight)
+plot(x = d$weight, y = m$residuals)
+#alternative
+e <- resid(m)
+plot(x = d$weight, y = e)
+hist(e, xlim = c(-4 * sd(e), 4 * sd(e)), breaks = 20, main = "Histogram of Residuals")
+#alternative
+plot(m$model$weight, m$residuals)
+par(mfrow = c(2, 2))
+plot(m)
+```
+Using the last couple lines of code:
+
+- the QQ plot should show a relatively straight line if the residuals are normally distributed
+
+- the third plot graphs the square roots of the standardized residuals versus x--shows whether the residuals are equally disributed along the range of x; you want to see a horizontal line with equally spread points
+
+- the fourth plot shows whether there are particular observations that influence the results
+```{r}
+library(car)
+qqPlot(m$residuals) #shows trendline and CI
+s <- shapiro.test(m$residuals)
+```
+Shapiro-Wilk normality test: a low p value means deviation from normality
+
+**other tests for normality are on Module 13**
+
+#Challenge
+```{r}
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/KamilarAndCooperData.csv")
+d <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = FALSE)
+head(d)
+w <- d$WeaningAge_d
+b <- d$Body_mass_female_mean
+beta1 <- cor(w, b) * sd(w)/sd(b)
+beta1 #still getting an NA value
+beta1 <- cor(d$WeaningAge_d, d$Body_mass_female_mean) * sd(d$WeaningAge_d)/sd(d$Body_mass_female_mean)
+beta1 #this didn't work
+beta0 <- mean(d$WeaningAge_d) - beta1 * mean(d$Body_mass_female_mean)
+beta0
+m <- lm(WeaningAge_d ~ Body_mass_female_mean, data = d)
+summary(m)
+summary.aov(m)
+plot(data = d, WeaningAge_d ~ Body_mass_female_mean)
+model <- lm(data = d, WeaningAge_d ~ Body_mass_female_mean)
+summary(model)
+plot(model)
+qqPlot(model$residuals)
+s <- shapiro.test(model$residuals)
+s #something went wrong with finding beta1
+```
+
+#Data Transformations
+What if the two conditions for a linear model aren't met? Sometimes we can use the log transformation for positive numeric variables to get a better measure of centrality
+
+- taking the log is a *power transformation*, along with a square root transformation and reciprocal transformation
+```{r log transformation}
+d$logWeaningAge <- log(d$WeaningAge_d)
+d$logFemaleBodyMass <- log(d$Body_mass_female_mean)
+plot(data = d, logWeaningAge ~ logFemaleBodyMass)
+model <- lm(data = d, logWeaningAge ~ logFemaleBodyMass)
+summary(model)
+plot(model)
+qqPlot(model$residuals)
+s <- shapiro.test(model$residuals)
+s
+```
+
+Examples of useful transformations
+
+1. logX: y = a + bln(x)
+
+2. logY: y = exp(a + bx)
+
+3. asymptotic: y = ax/ (1 + bx)
+
+4. reciprocal: y = a + (b/x)
+
+5. power law: y = ax^b
+
+6. exponential: y = ae^(bx)
+```{r examples of transformations}
+par(mfrow = c(1, 2))
+
+a <- 2
+b <- 2
+
+# log x
+x <- seq(from = 0, to = 100, length.out = 1000)
+y <- a + b * log(x)
+plot(x, y, type = "l", main = "untransformed")
+plot(log(x), y, type = "l", main = "log(x)")
+# log y
+x <- seq(from = 0, to = 10, length.out = 1000)
+y <- exp(a + b * x)
+plot(x, y, type = "l", main = "untransformed")
+plot(x, log(y), type = "l", main = "log(y)")
+# assymptotic
+x <- seq(from = 1, to = 100, length.out = 100)
+y <- (a * x)/(1 + b * x)
+plot(x, y, type = "l", main = "untransformed")
+plot(1/x, y, type = "l", main = "1/x")
+# reciprocal
+x <- seq(from = 1, to = 100, length.out = 100)
+y <- a + b/x
+plot(x, y, type = "l", main = "untransformed")
+plot(1/x, y, type = "l", main = "1/x")
+# power
+x <- seq(from = 1, to = 100, length.out = 100)
+y <- a * x^b
+plot(x, y, type = "l", main = "untransformed")
+plot(x^b, y, type = "l", main = "x^b")
+# exp
+x <- seq(from = 1, to = 10, length.out = 100)
+y <- a * exp(b * x)
+plot(x, y, type = "l", main = "untransformed")
+plot(x, log(y), type = "l", main = "log(y)")
+```
+Sometimes you have to be careful when dealing with transformations, and should be able to go between the transformation and actual data to make sure everything is working the way it should.

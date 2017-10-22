@@ -120,12 +120,13 @@ head(df)
 
 g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m)) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=400, y=350, aes(label = "1.218x + 248.952")) + geom_line(data=df, aes(x = x, y = CIlwr)) + geom_line(data=df, aes(x = x, y = CIupr)) + geom_line(data = df, aes(x = x, y = PIlwr)) + geom_line(data = df, aes(x = x, y = PIupr)) + scale_color_manual("", breaks = c("CIUpper", "CILower", "PIUpper", "PILower"), values = c("CIUpper"="blue", "CILower"="blue", "PIUpper"="red", "PILower"="red"))
 g
+g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m))
 g <- g + geom_point()
 g <- g + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=400, y=350, aes(label = "1.218x + 248.952"))
 g <- g + geom_line(data=df, aes(x = x, y = CIlwr), colour = "blue")
 g <- g + geom_line(data=df, aes(x = x, y = CIupr), colour = "blue")
 g <- g + geom_line(data = df, aes(x = x, y = PIlwr), colour = "red")
-g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red")
+g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red") + legend("right", c("CILower","CIUpper","PILower","PIUpper"))
 g
 yhat <- (1.218*800) + 248.952
 yhat
@@ -169,7 +170,7 @@ g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red")
 g
 yhat <- (0.2341*800) + 4.8790
 yhat
-pi <- predict(m, newdata = data.frame(b = 800), interval = "prediction", 
+pi <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = 800), interval = "prediction", 
     level = 0.90)
 pi
 ```
