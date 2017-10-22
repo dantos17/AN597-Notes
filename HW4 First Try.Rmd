@@ -85,6 +85,7 @@ else {
 
 
 #Question 2
+Model for Max Longevity ~ Brain Size
 ```{r}
 require(curl)
 require(ggplot2)
@@ -95,11 +96,81 @@ names(d)
 plot(data=d, MaxLongevity_m ~ Brain_Size_Species_Mean)
 l <- d$MaxLongevity_m
 b <- d$Brain_Size_Species_Mean
-m <- lm(MaxLongevity_m ~ Brain_Size_Species_Mean, data=d)
+m <- lm(MaxLongevity_m ~ Brain_Size_Species_Mean, data=d) #regular data
 m
-g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m))
-g <- g + geom_point()
-g <- g + geom_smooth(method = "lm", formula = y ~ x) + geom_text(aes("yhat = 1.218x + 248.952"))
+m <- lm(data = d, MaxLongevity_m ~ Brain_Size_Species_Mean)
+h_hat <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean))
+df <- data.frame(cbind(d$Brain_Size_Species_Mean, d$MaxLongevity_m, h_hat))
+names(df) <- c("x", "y", "yhat")
+head(df)
+ci <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean), interval = "confidence", 
+    level = 0.90) 
+head(ci)
+df <- cbind(df, ci)
+names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr")
+head(df)
+pi <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean), interval = "prediction", 
+    level = 0.90) 
+head(pi)
+df <- cbind(df, pi)
+names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr", "PIfit", "PIlwr", 
+    "PIupr")
+head(df)
+
+
+g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m)) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=400, y=350, aes(label = "1.218x + 248.952")) + geom_line(data=df, aes(x = x, y = CIlwr)) + geom_line(data=df, aes(x = x, y = CIupr)) + geom_line(data = df, aes(x = x, y = PIlwr)) + geom_line(data = df, aes(x = x, y = PIupr)) + scale_color_manual("", breaks = c("CIUpper", "CILower", "PIUpper", "PILower"), values = c("CIUpper"="blue", "CILower"="blue", "PIUpper"="red", "PILower"="red"))
 g
+g <- g + geom_point()
+g <- g + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=400, y=350, aes(label = "1.218x + 248.952"))
+g <- g + geom_line(data=df, aes(x = x, y = CIlwr), colour = "blue")
+g <- g + geom_line(data=df, aes(x = x, y = CIupr), colour = "blue")
+g <- g + geom_line(data = df, aes(x = x, y = PIlwr), colour = "red")
+g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red")
+g
+yhat <- (1.218*800) + 248.952
+yhat
+pi <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = 800), interval = "prediction", 
+    level = 0.90)
+pi
+```
+
+Model for log(Max Longevity) ~ log(Brain Size)
+```{r}
+l <- log(d$MaxLongevity_m)
+b <- log(d$Brain_Size_Species_Mean)
+m <- lm(log(MaxLongevity_m) ~ log(Brain_Size_Species_Mean), data=d) #log
+m
+h_hat <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = b))
+df <- data.frame(cbind(b, l, h_hat))
+names(df) <- c("x", "y", "yhat")
+head(df)
+ci <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = b), interval = "confidence", 
+    level = 0.90)
+head(ci)
+df <- cbind(df, ci)
+names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr")
+head(df)
+pi <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = b), interval = "prediction", 
+    level = 0.90) 
+head(pi)
+df <- cbind(df, pi)
+names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr", "PIfit", "PIlwr", 
+    "PIupr")
+head(df)
+
+g <- ggplot(data = d, aes(x = log(Brain_Size_Species_Mean), y = log(MaxLongevity_m))) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=5, y=5.5, aes(label = "0.2341x + 4.8790")) + geom_line(data=df, aes(x = x, y = CIlwr)) + geom_line(data=df, aes(x = x, y = CIupr)) + geom_line(data = df, aes(x = x, y = PIlwr)) + geom_line(data = df, aes(x = x, y = PIupr)) + scale_color_manual("", breaks = c("CIUpper", "CILower", "PIUpper", "PILower"), values = c("CIUpper"="blue", "CILower"="blue", "PIUpper"="red", "PILower"="red"))
+g
+g <- g + geom_point()
+g <- g + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=5, y=5.5, aes(label = "0.2341x + 4.8790"))
+g <- g + geom_line(data=df, aes(x = x, y = CIlwr), colour = "blue")
+g <- g + geom_line(data=df, aes(x = x, y = CIupr), colour = "blue")
+g <- g + geom_line(data = df, aes(x = x, y = PIlwr), colour = "red")
+g <- g + geom_line(data = df, aes(x = x, y = PIupr), colour = "red")
+g
+yhat <- (0.2341*800) + 4.8790
+yhat
+pi <- predict(m, newdata = data.frame(b = 800), interval = "prediction", 
+    level = 0.90)
+pi
 ```
 
