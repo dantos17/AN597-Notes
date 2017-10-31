@@ -1,4 +1,7 @@
----
+library(curl)
+f <- curl("https://raw.githubusercontent.com/dantos17/AN597-Notes/master/p53_text_file.txt")
+d <- read.table(f, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+head(d)
 title: "Data Replication"
 author: "Dani Antos"
 date: "October 30, 2017"
@@ -16,6 +19,13 @@ head(d)
 library(curl)
 f <- curl("https://raw.githubusercontent.com/dantos17/AN597-Notes/master/p53_text_file.txt")
 d <- read.table(f, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-head(d) #help
+head(d) #help #this is using the collapsed file, so I think I just can't use that
+```
+
+```{r gene sets}
+library(curl)
+f <- curl("https://raw.githubusercontent.com/dantos17/AN597-Notes/master/c1.symbols.gmt")
+d <- read.table(f, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
+head(d)
 ```
 
