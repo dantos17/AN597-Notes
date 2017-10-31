@@ -6,14 +6,14 @@ output: html_document
 ---
 
 Previously, we've only used continuous variables as predictors, but you can also use discrete variables.
-
+We can also call this an ANCOVA
 ```{r}
 library(curl)
 f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/zombies.csv")
 z <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = TRUE)
 class(z$gender)
 summary(z$gender)
-plot(z$height ~ z$gender) #if you have gender as a character rather than factor, you'll get an error
+plot(z$height ~ z$gender) #if you have gender as a character rather than factor, you'll get an error, we can also use as.factor()
 m <- lm(data = z, height ~ gender)
 summary(m) #we could also do a z or t test
 levels(z$gender) #I'm a little fuzzy on what's happening here, something about the intercept being a factor instead of a number?
@@ -21,6 +21,8 @@ levels(z$gender) #I'm a little fuzzy on what's happening here, something about t
 Okay so I think I get the whole factor thing. The equation here is basically:
 
 height = beta1 + (beta0 x gender), where males = 1 and females = 0 (no matter how SEXIST that is)
+
+- gives how much you would have to add to the baseline mean (female height) to get to the next categorical mean (male height)
 
 The p value associated with the t statistic for beta1 is SUPER low, so we can assume that gender has an effect on height. 
 
@@ -98,7 +100,7 @@ means <- summarise(group_by(d, age), mean(femur.length))  # calculate average by
 points(1:4, means$`mean(femur.length)`, pch = 4, cex = 1.5)  # add means to plot #I'm going to need him to go over this
 sds <- summarise(group_by(d, age), sd(femur.length))
 max(sds$`sd(femur.length)`)/min(sds$`sd(femur.length)`)  # check that variances are roughly equal (ratio of max/min is <2)
-means.centered <- d$femur.length - means[as.numeric(d$age), 2]  # subtract relevant group mean from each data point
+means.centered <- d$femur.length - means[as.numeric(d$age), 2]  # subtract relevant group mean from each data point #standardizing data by age, QQ plot looks normal
 qqnorm(means.centered$`mean(femur.length)`)  # graphical tests for normality
 par(mfrow = c(2, 2))
 hist(d$femur.length[d$age == "inf"], main = "inf")
@@ -175,7 +177,7 @@ interaction.plot(x.factor = d$age, xlab = "Age", trace.factor = d$sex, trace.lab
 
 It looks like there is a significant main effect on each term as well as an interaction between the two categorical variables. 
 ```{r}
-#Idon't really understand what's going on here
+#I don't really understand what's going on here
 m1 <- aov(data = d, femur.length ~ age * sex)
 summary(m1)
 m2 <- aov(data = d, femur.length ~ sex * age)
@@ -194,9 +196,9 @@ the *anova* is based on splitting the sum of squares so you get:
 
 SS(total) = SS(a) + SS(b) + SS(ab) + SS(residual)
 
-- aov() function uses the Type I Sum of Squares = gives greater emphasis to the first factor in the model, so only the residual variation is left for the other variables
+- aov() function uses the Type I Sum of Squares = gives greater emphasis to the first factor in the model, so only the residual variation is left for the other variables (use when you're trying to control for a variable)
 
-- Type II Sum of Squares compares the effects of each group and assumes that interactions between them are minimal...usually a more appropriate test, especially when there is an unbalanced design
+- Type II Sum of Squares compares the effects of each group and assumes that interactions between them are minimal...usually a more appropriate test, especially when there is an unbalanced design (estimates everything at the same time)
 
 - Type III Sum of Squares (also marginal sum of squares) is used when there is signicant interaction effect
 

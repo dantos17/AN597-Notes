@@ -1,7 +1,4 @@
-library(curl)
-f <- curl("https://raw.githubusercontent.com/dantos17/AN597-Notes/master/p53_text_file.txt")
-d <- read.table(f, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-head(d)
+
 title: "Data Replication"
 author: "Dani Antos"
 date: "October 30, 2017"
