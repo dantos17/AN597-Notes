@@ -166,7 +166,8 @@ names(df) <- c("x", "y", "yhat", "CIfit", "CIlwr", "CIupr", "PIfit", "PIlwr",
 head(df)
 
 g <- ggplot(data = d, aes(x = log(Brain_Size_Species_Mean), y = log(MaxLongevity_m))) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) + geom_text(x=5, y=5.5, aes(label = "0.2341x + 4.8790")) + geom_line(data=df, aes(x = x, y = CIlwr)) + geom_line(data=df, aes(x = x, y = CIupr)) + geom_line(data = df, aes(x = x, y = PIlwr)) + geom_line(data = df, aes(x = x, y = PIupr)) + scale_color_manual("", breaks = c("CIUpper", "CILower", "PIUpper", "PILower"), values = c("CIUpper"="blue", "CILower"="blue", "PIUpper"="red", "PILower"="red"))
-g #I read on stack overflow that scale_color_manual can be used to make a legend so I wrote my ggplot code exactly like the example did, and the only thing that changed was the color of my lines
+g #I read on stack overflow that scale_color_manual can be used to make a legend so I wrote my ggplot code exactly like the example did, and the only thing that changed was the color of my lines #can't use this because the lines aren't actually part of  the dataset
+#use discrete instead of manual, in the aesthetic command?
 
 g <- ggplot(data = d, aes(x = log(Brain_Size_Species_Mean), y = log(MaxLongevity_m)))
 g <- g + geom_point()
