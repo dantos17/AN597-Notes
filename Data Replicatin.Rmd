@@ -12,17 +12,22 @@ head(d)
 #I GOT ITTTTTTTTT
 ```
 
-```{r loading p53 data into rstudio}
-library(curl)
-f <- curl("https://raw.githubusercontent.com/dantos17/AN597-Notes/master/p53_text_file.txt")
-d <- read.table(f, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-head(d) #help #this is using the collapsed file, so I think I just can't use that
+```{r}
+library(dslice)
+blah<-load_gct("Gender_hgu133a.gct")
+summary(blah)
+diabetes <- load_gct("Diabetes_hgu133a.gct")
+summary(diabetes)
+leukemia <- load_gct("Leukemia_hgu95av2.gct")
+summary(leukemia)
+p53 <- load_gct("P53_hgu95av2.gct")
+summary(p53)
 ```
 
-```{r gene sets}
-library(curl)
-f <- curl("https://raw.githubusercontent.com/dantos17/AN597-Notes/master/c1.symbols.gmt")
-d <- read.table(f, header = TRUE, sep = "\t", stringsAsFactors = FALSE)
-head(d)
+
+
+```{r}
+library(dslice)
+blah2<-load_gmt("c1.symbols.gmt")
 ```
 

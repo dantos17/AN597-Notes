@@ -1,0 +1,202 @@
+---
+title: "Module15 Notes"
+author: "Dani Antos"
+date: "November 3, 2017"
+output: html_document
+---
+
+Now we're moving on to multiple linear regression (even though I thought we at least started that in the last module)
+
+- if all of the variables are continuous, we call this a multiple linear regression
+
+- if the variables are a combo of continuous and categorical, then we call it an ANCOVA (analysis of covariance)
+
+- using a multiple linear regression, we can evaluate the effect of several explanatory variables on the response variable. We basically are looking at the effect of each of the continuous predictor variables on the continuous response variable, while holding all of the other predictor variables constant (I think?)
+
+Bivariate linear model: 
+
+Y = beta0 + beta1 x X + error
+
+Multivariate linear model:
+
+Y = beta0 + (beta1 x X1) + (beta2 x X2) + ... + error
+
+we need to estimate multiple beta coefficients now: one intercept and one per predictor variable in the model, which gives us a "multidimensional surface of best fit" as opposed to a line of best fit
+
+- for this we usually use ordinary least squares, to minimize the sum of the squared deviation between the observed and predicted values
+
+- we use matrix algebra to estimate the coefficients, but lm() does this automatically/directly (unsure of the difference)
+
+#Example 1: Continuous Response and 1+ Continuous Predictor Variables
+we're strting by creating our own dataset of correlated random normal continuous variables
+```{r creating datasets}
+R = matrix(cbind(1, 0.8, -0.5, 0, 0.8, 1, -0.3, 0.3, -0.5, -0.3, 1, 0.6, 0, 
+    0.3, 0.6, 1), nrow = 4) #matrix of correlations among our variables
+n <- 1000
+k <- 4
+M <- NULL
+V <- NULL
+mu <- c(15, 40, 5, 23)  # vector of variable means
+s <- c(5, 20, 4, 15)  # vector of variable SDs
+for (i in 1:k) {
+    V <- rnorm(n, mu[i], s[i])
+    M <- cbind(M, V)
+}
+M <- matrix(M, nrow = n, ncol = k)
+orig <- as.data.frame(M)
+names(orig) = c("Y", "X1", "X2", "X3")
+head(orig) #datasets of random normal variables, each with a defined mean and stadard deviation, bundled into matrix M and dataframe orig
+cor(orig) # variables are uncorrelated
+plot(orig)  # does quick bivariate plots for each pair of variables; using `pairs(orig)` would do the same
+```
+
+Now we want to normalise and standardise our variables: subtract the relevant means and divide by the standard deviation
+
+- this converts values to Z scores from a standardised normal distribution
+```{r z score}
+ms <- apply(orig, 2, FUN = "mean")  # returns a vector of means, where we are taking this across dimension 2 of the array 'orig'
+ms
+sds <- apply(orig, 2, FUN = "sd")
+sds
+normalized <- sweep(orig, 2, STATS = ms, FUN = "-")  # 2nd dimension is columns, removing array of means, function = subtract
+normalized <- sweep(normalized, 2, STATS = sds, FUN = "/")  # 2nd dimension is columns, scaling by array of sds, function = divide
+head(normalized)  # now a dataframe of Z scores
+M <- as.matrix(normalized)  # redefine M as our matrix of normalized variables
+M
+```
+apply() means we apply the specified function to a certain part of the array or matrix. sweep() lets us perform whatever function we want on all of the elements in an array specified by the given margin
+
+**Cholesky decomposition** breaks certain symmetric matrices into 2 so that: R = U x U^T
+
+- we take the Cholesky decomposition of our correlation matrix and multiply the normalised data matrix by the decomposition matrix
+
+- this gives us a transformed dataset with the specified correlation among variables (I got a little lost in the middle here, how does this give a particular correlation value? Wait is it because you don't see a correlation when you first make the matrix?)
+
+```{r cholesky}
+U = chol(R)
+newM = M %*% U
+new = as.data.frame(newM)
+names(new) = c("Y", "X1", "X2", "X3")
+cor(new)  # note that is correlation matrix is what we are aiming for!
+plot(orig)
+plot(new)  # note the axis scales; using `pairs(new)` would plot the same
+df <- sweep(new, 2, STATS = sds, FUN = "*")  # scale back out to original mean...
+df <- sweep(df, 2, STATS = ms, FUN = "+")  # and standard deviation
+head(df) #this basically "unstandardize" the values I think
+cor(df)
+plot(df)  # note the change to the axis scales; using `pairs(d)` would produce the same plot
+```
+
+So now we have a dataframe (df) with the correlated random variables in the ORIGINAL units
+
+#Challenge
+Start by making scatterplots in ggplot2, then use lm() to make regressions. How much does Y change which each predictor variable (X1, X2, X3)? Are the beta1 coefficients significant?
+```{r bivariate regression}
+library(ggplot2)
+require(gridExtra)
+g1 <- ggplot(data = df, aes(x = X1, y = Y)) + geom_point() + geom_smooth(method = "lm", 
+    formula = y ~ x)
+g2 <- ggplot(data = df, aes(x = X2, y = Y)) + geom_point() + geom_smooth(method = "lm", 
+    formula = y ~ x)
+g3 <- ggplot(data = df, aes(x = X3, y = Y)) + geom_point() + geom_smooth(method = "lm", 
+    formula = y ~ x)
+grid.arrange(g1, g2, g3, ncol = 3)
+m1 <- lm(data = df, formula = Y ~ X1)
+summary(m1)
+m2 <- lm(data = df, formula = Y ~ X2)
+summary(m2)
+m3 <- lm(data = df, formula = Y ~ X3)
+summary(m3) #mine do not match his at ALL, could the ones in the module still be standardised?
+```
+
+If we look at them separately: 
+
+- Y has a significant positive relationship with X1
+
+- Y has a significant negative relationship with X2
+
+- Y has no significant relationship with X3
+
+So now we can move on to the multiple regression. 
+```{r multiple regression}
+m <- lm(data = df, formula = Y ~ X1 + X2 + X3)
+coef(m)
+summary(m)
+# let's check if our residuals are random normal...
+plot(fitted(m), residuals(m))
+hist(residuals(m))
+qqnorm(residuals(m))
+```
+
+From this, we know that the overall model is significant 
+
+The F statistic for a multiple regression is:
+
+F = [(R^2)x(n-p-1)]/ (1-R^2)x p
+
+- R^2 is the multiple R squared value
+
+- n is the number of data points
+
+- p is the number of parameters estimated, or the number of beta1 coefficients (not counting the intercept)
+```{r f statistic}
+f <- (summary(m)$r.squared * (nrow(df) - (ncol(df) - 1) - 1))/((1 - summary(m)$r.squared) * 
+    (ncol(df) - 1))
+f #is the difference between my value and the module value okay?
+```
+summary() tells us that the beta coefficient for each of the predictor variables is significant
+
+#Challenge
+Run a linear model from the zombie data of height as a function of weight and age. Is the overall model significant?
+```{r}
+library(curl)
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/zombies.csv")
+z <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = TRUE)
+head(z)
+m <- lm(data = z, height ~ weight + age)
+summary(m)
+plot(fitted(m), residuals(m))
+hist(residuals(m))
+qqnorm(residuals(m)) #he didn't include any plots, can you really stop with the lm() output?
+```
+
+#ANCOVA
+Now we're looking at a set of predictor variables that are continuous and categorical. Response variable is still continuous.
+
+Looking at the zombie data and predicting height as a function of age and gender using a Type II regression.
+```{r ancova}
+library(car)
+m <- lm(data = z, formula = height ~ gender + age)
+summary(m)
+m.aov <- Anova(m, type = "II")
+m.aov
+plot(fitted(m), residuals(m))
+hist(residuals(m))
+qqnorm(residuals(m))
+```
+
+How do we interpre this?
+
+- omnibus F test is significant
+
+- both predictors are significant
+
+- at a particular age, being male adds 4 inches to the predicted height compared to a female (where did this come from?)
+
+We can create several equations from our data, with female being the first/basal level (with only one coefficient)
+
+Females: height = 46.7251 + 0.94091 x age
+
+Males: height = 46.7251 + 4.00224 + 0.94091 x age
+```{r}
+library(ggplot2)
+p <- ggplot(data = z, aes(x = age, y = height)) + geom_point(aes(color = factor(gender))) + 
+    scale_color_manual(values = c("goldenrod", "blue"))
+p <- p + geom_abline(slope = m$coefficients[3], intercept = m$coefficients[1], 
+    color = "goldenrod4")
+p <- p + geom_abline(slope = m$coefficients[3], intercept = m$coefficients[1] + 
+    m$coefficients[2], color = "darkblue")
+p
+
+```
+
