@@ -28,7 +28,7 @@ we need to estimate multiple beta coefficients now: one intercept and one per pr
 - we use matrix algebra to estimate the coefficients, but lm() does this automatically/directly (unsure of the difference)
 
 #Example 1: Continuous Response and 1+ Continuous Predictor Variables
-we're strting by creating our own dataset of correlated random normal continuous variables
+we're starting by creating our own dataset of correlated random normal continuous variables
 ```{r creating datasets}
 R = matrix(cbind(1, 0.8, -0.5, 0, 0.8, 1, -0.3, 0.3, -0.5, -0.3, 1, 0.6, 0, 
     0.3, 0.6, 1), nrow = 4) #matrix of correlations among our variables
@@ -46,7 +46,7 @@ M <- matrix(M, nrow = n, ncol = k)
 orig <- as.data.frame(M)
 names(orig) = c("Y", "X1", "X2", "X3")
 head(orig) #datasets of random normal variables, each with a defined mean and stadard deviation, bundled into matrix M and dataframe orig
-cor(orig) # variables are uncorrelated
+cor(orig) # variables are uncorrelated, ideal condition for this regression
 plot(orig)  # does quick bivariate plots for each pair of variables; using `pairs(orig)` would do the same
 ```
 
@@ -58,7 +58,7 @@ ms <- apply(orig, 2, FUN = "mean")  # returns a vector of means, where we are ta
 ms
 sds <- apply(orig, 2, FUN = "sd")
 sds
-normalized <- sweep(orig, 2, STATS = ms, FUN = "-")  # 2nd dimension is columns, removing array of means, function = subtract
+normalized <- sweep(orig, 2, STATS = ms, FUN = "-")  # 2nd dimension is columns, removing array of means, function = subtract, we're doing this across the columns not the rows
 normalized <- sweep(normalized, 2, STATS = sds, FUN = "/")  # 2nd dimension is columns, scaling by array of sds, function = divide
 head(normalized)  # now a dataframe of Z scores
 M <- as.matrix(normalized)  # redefine M as our matrix of normalized variables
@@ -106,7 +106,7 @@ summary(m1)
 m2 <- lm(data = df, formula = Y ~ X2)
 summary(m2)
 m3 <- lm(data = df, formula = Y ~ X3)
-summary(m3) #mine do not match his at ALL, could the ones in the module still be standardised?
+summary(m3) #mine do not match his at ALL, could the ones in the module still be standardised? #fixed it, idk what happened, I just ran the code again
 ```
 
 If we look at them separately: 
@@ -219,7 +219,7 @@ pi
 ```
 
 **interactive effects** are additional changes in the response that are due to particular combinations of predictors or because the relationship of one continuous variable with a response is contingent on another categorical variable
-```{r}
+```{r interactions}
 m <- lm(data = z, height ~ age + gender + age:gender)  # or
 summary(m)
 m <- lm(data = z, height ~ age * gender)

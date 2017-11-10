@@ -1,0 +1,77 @@
+---
+title: "Swirl- Regression Models"
+author: "Dani Antos"
+date: "November 7, 2017"
+output: html_document
+---
+#Intro
+parent heights are the independent variable and children heights are the dependent variable
+```{r}
+plot(child ~ parent, galton)
+plot(jitter(child,4) ~ parent,galton)
+regrline <- lm(child ~ parent, galton)
+abline(regrline, lwd=3, col='red')
+summary(regrline) #our slope is significantly different than 1 or 0
+```
+
+#Residuals
+residuals are the differences between actual responses and estimates given by the regression line
+```{r}
+fit <- lm(child ~ parent, galton)
+summary(fit)
+mean(fit$residuals)
+cov(fit$residuals, galton$parent) #correlation between residuals and predictors
+ols.ic <- fit$coef[1]
+ols.slope <- fit$coef[2]
+lhs-rhs #subtracting the two sides of the equation
+all.equal(lhs, rhs) #tests for equality
+varChild <- var(galton$child)
+varRes <- var(fit$residuals)
+varEst <- var(est(ols.slope, ols.ic))
+all.equal(varChild,varEst+varRes)
+#now we're working with a different dataset on earthquakes
+efit <- lm(accel ~ mag+dist, attenu)
+mean(efit$residuals)
+cov(efit$residuals, attenu$mag)
+cov(efit$residuals, attenu$dist)
+```
+
+#Least Squares Estimation
+```{r manipulate function}
+myPlot <- function(beta){
+  y <- galton$child - mean(galton$child)
+  x <- galton$parent - mean(galton$parent)
+  freqData <- as.data.frame(table(x, y))
+  names(freqData) <- c("child", "parent", "freq")
+  plot(
+    as.numeric(as.vector(freqData$parent)), 
+    as.numeric(as.vector(freqData$child)),
+    pch = 21, col = "black", bg = "lightblue",
+    cex = .15 * freqData$freq, 
+    xlab = "parent", 
+    ylab = "child"
+  )
+  abline(0, beta, lwd = 3)
+  points(0, 0, cex = 2, pch = 19)
+  mse <- mean( (y - beta * x)^2 )
+  title(paste("beta = ", beta, "mse = ", round(mse, 3)))
+}
+manipulate(myPlot(beta), beta = manipulate::slider(0.4, .8, step = 0.02))
+```
+
+```{r actual swirl codes}
+cor(gpa_nor, gch_nor)
+l_nor <- lm(gch_nor ~ gpa_nor)
+```
+
+#Residual Variation
+```{r}
+fit <- lm(child ~ parent, galton)
+sqrt(sum(fit$residuals^2) / (n - 2)) #standard deviation estimate
+summary(fit)$sigma
+sqrt(deviance(fit)/(n-2))
+mu <- mean(galton$child)
+sTot <- sum((galton$child - mu)^2)
+
+```
+

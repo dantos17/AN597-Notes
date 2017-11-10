@@ -1,0 +1,129 @@
+---
+title: "Module16 Notes"
+author: "Dani Antos"
+date: "November 8, 2017"
+output: html_document
+---
+
+Model selection is used to sort through our explanatory variables t figure out which are best able to describe (explain?) the response. There are different algorithms for model selection, so we can get different parameters included in the final model. 
+
+#Nested Comparisons
+This uses F ratios and "partial F tests"; looks at two or more nested models. 
+
+- the larger model contains the explanatory variables of interest
+
+- the smaller models are less complex, and exclude one or more of the explanatory variables
+
+- we compare the variance in the response variable that is explained by the more complex model versus the smaller model to indicate which predictors are important
+
+##Example
+The partial F statistic is calculated by compaing the full and reduced models:
+
+F = (Rsquared[full]-Rsquared[reduced]) x (n-q-1)/(1-Rsquared[full]) x (q-p)
+
+- n is the number of observations
+
+- p is the number of predictor terms in the reduced model
+
+- q is the number of predictor terms in the full model
+```{r partial f statistic}
+library(curl)
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/zombies.csv")
+z <- read.csv(f, header = TRUE, sep = ",", stringsAsFactors = TRUE)
+m1 <- lm(data = z, height ~ age * gender)  # full model
+m2 <- lm(data = z, height ~ age + gender)  # model without interactions
+m3 <- lm(data = z, height ~ age)  # model with one predictor
+m4 <- lm(data = z, height ~ 1)  # intercept only model
+anova(m2, m1, test = "F")  # compares the reduced model without interactions (m2) to the full model with interactions (m1)
+f <- ((summary(m1)$r.squared - summary(m2)$r.squared) * (nrow(z) - 3 - 1))/((1 - 
+    summary(m1)$r.squared) * (3 - 2))
+f
+p <- 1 - pf(f, df1 = 3 - 2, df2 = nrow(z) - 3, lower.tail = TRUE)  # df1 = q-p, df2 = n-q
+p
+anova(m3, m2, test = "F")  # compares the age only model (m3) to the age + gender model (m2)
+f <- ((summary(m2)$r.squared - summary(m3)$r.squared) * (nrow(z) - 2 - 1))/((1 - 
+    summary(m2)$r.squared) * (2 - 1))
+f
+p <- 1 - pf(f, df1 = 2 - 1, df2 = nrow(z) - 2, lower.tail = TRUE)  # df1 = q-p, df2 = n-q
+p #all comparisons show that the complex model has significantly more explanatory power
+```
+
+#Forward Selection
+Starts with an intercept-only model and then tests which predictors best improves the goodness of fit. Then it adds that predictor and continues to test the remaining predictors until there are none left that would improve the fit.
+
+- add1() performs the test series
+
+- update() updates the fitted regression model
+
+- setting test= argument to "F" includes the partial F statistic value and that significance
+
+- in scope=, ".~." means what is already there, while the rest of the argument lists the rest of the variables that you would potentially add to the model
+```{r forward selection}
+m0 <- lm(data = z, height ~ 1)
+summary(m0)
+add1(m0, scope = . ~ . + age + weight + zombies_killed + years_of_education, 
+    test = "F")
+m1 <- update(m0, formula = . ~ . + weight)
+summary(m1)
+add1(m1, scope = . ~ . + age + weight + zombies_killed + years_of_education, 
+    test = "F")
+m2 <- update(m1, formula = . ~ . + age)
+summary(m2)
+add1(m2, scope = . ~ . + age + weight + zombies_killed + years_of_education, 
+    test = "F")
+summary(m2) #after weight and age are added, no other variable improves the fit of the model, so m2 is the best
+```
+
+#Backward Selection
+Opposite from forward selection, you start with the fullest model and drop terms that don't contribute to the explanatory value of the model. drop1() inspects the partial F statistic results and update() updates the model
+```{r backward selection}
+m0 <- lm(data = z, height ~ age + weight + zombies_killed + years_of_education)
+summary(m0)
+drop1(m0, test = "F")
+m1 <- update(m0, . ~ . - years_of_education)
+summary(m1)
+drop1(m1, test = "F")
+m2 <- update(m1, . ~ . - zombies_killed)
+summary(m2)
+drop1(m2, test = "F")
+summary(m2) #all explanatory variables are still significant so the best model is also m2
+```
+
+#AIC
+We have two R functions to shortcut this process. AIC stands for Akaike Information Criterion, used in place of partial F-tests
+
+calculated as:
+
+-2(log-likelihood) + 2K
+
+- K=number of model parameters, aka variables in the model plus the intercept
+
+- log-likelihood=measure of model fit, the higher the better; this is a function of sample size, so larger sample sizes will naturally have a lower log likelihood
+
+The model with the lowest AIC is designated as the best fit for the data. But it can only assess the relative fit, not the absolute fit (aka the Rsquared value). 
+
+- stepAIC() function in the {MASS} package performs the stepwise model reduction automatically
+
+- to use it, you just have to specify the most complex version of the model and choose whether you want to run the model forwards or backwards
+
+##Example
+We're trying stepAIC() with m0 from above
+```{r stepAIC()}
+library(MASS)
+stepAIC(m0, direction = "both")
+#we get the same answer as above
+```
+Package called AICcmodavg is also very helpful. The extra "c" in AICc stands for correcion, this version can account for small sample sizes. The equation looks like this:
+
+AICc = AIC + [2k x (k + 1)]/(n-k-1)
+
+- n is the sample size
+
+- k is the number of parameters in the model
+
+The values for AIC and AICc converge as sample size increases, so some people think that AICc should always be the default model. 
+```{r AICc example}
+library(AICcmodavg)
+print(aictab(list(m0, m1, m2), c("m0", "m1", "m2")), LL = FALSE)
+```
+Output allows us to directly compare the relative fit of each model. The best model is on the top of the list, and matches all of our previous findings with m2.
