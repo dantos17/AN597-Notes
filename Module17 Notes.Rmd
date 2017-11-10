@@ -1,0 +1,48 @@
+---
+title: "Module17 Notes"
+author: "Dani Antos"
+date: "November 9, 2017"
+output: html_document
+---
+
+So far, all of our models have been generalized linear models, meaning that they are assumed to be normally distributed in all aspects: response variables, error terms, etc. 
+
+- we also assume costant variance in response variable across the range of predictor variables
+
+- if these assumptions aren't met, we can sometimes transform our variables to fit them, but not always
+
+**generalized linear modeling** is another regression technique that we can use
+
+- they allow the expected value of the response variable to depend on our predictors through the **link function**
+
+- link function allows the response variable to belong to any set of distributions in the "exponential family" (normal, Poisson, binomial), and the residuals don't have to be normally distributed
+
+- doesn't require homogeneity of variance and "overdispersion" may be present
+
+**biggest difference**: we aren't using OLS anymore to estimate parameter values, now we use maximum likelihood or Bayesian approaches
+
+#Components of a generalized linear model
+##systematic or linear component
+Reflects the "linear combination" of predictor variables in the model, which can be categorical or continuous.
+
+- interactions between predictors and polynomial functions of predictors (?) can be included
+
+##error structure or random component
+Probability distribution of the response variable and the residuals after the linear component has been removed.
+
+- probability distribution in a GLM has to be in the exponential family
+
+##link function
+Links the expected value of the response variable to the predictors, basically just a transformation function.
+
+- the linear component yields a predicted value but it needs to be transformed back into a predicted Y value
+
+Examples of link functions:
+
+- identity link: what we use implicitly in standard linear models
+
+- log link: log of the mean Y value
+
+- logit link: log(pi/(1-pi)), used for binary data and logistic regression
+
+#Model Fitting in GLM

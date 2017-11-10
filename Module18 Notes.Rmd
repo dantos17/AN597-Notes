@@ -1,0 +1,43 @@
+---
+title: "Module18 Notes"
+author: "Dani Antos"
+date: "November 9, 2017"
+output: html_document
+---
+
+There are many types of mixed modeling:
+
+- linear mixed models (LMM): dealing with normally distributed variables and error structures
+
+- generalized linear mixed models (GLMM): other variable types and error structure
+
+- nonlinear mixed models (NLMM): situations where the response variable is modeled by a nonlinear combination of predictors; ex. Chris uses NLMMs to model somatic growth in monkeys
+
+In both types of linear mixed models, we have response variable Y and observations that fall into different categories with a set of levels (male and female, for example). We want to see the effects of the factors and factor levels on the response variable
+
+- if mu=population mean and mu(A)=mean response for observations in factor level A, then the effect of A=mu-mu(A)
+
+- we looked at factors and factor levels already with ANOVAs and ANCOVAs
+
+factor effects can be **fixed** or **random**
+
+1. fixed factors reflect all levels of interest in the study
+
+2. random effects only represent a sample of the levels of interest
+
+- ex. if sex is a factor with factor levels of male and female, it is a fixed factor because it will cover all levels of interest
+
+- ex. if individual id was the factor, it would probably be a random factor because we wouldn't collecct data from all possible individual subjects
+
+**Mixed models** include BOTH fixed and random effects. Including random effects has several ramifications
+
+- random effects broaden the scope of inference
+
+- using random effects naturally incorporate dependence in the model, helps us account for pseudoreplication in our dataset. Observations that are in the same level of the random effects are modeled as being correlated, useful in time series data and spatially correlated data
+
+- random factors give more accurate parameter estimates
+
+- requires use of more sophisticated estimation and fitting methods
+
+#Example
+
