@@ -138,7 +138,76 @@ New  functions:
 
 ##Step 3
 Because there are so many different algorithms to choose from when constructing our tree, we have to make sure the one we chose was appropriate for our dataset, using our original distance matrix (in this case, D). This is much easier than it sounds, and just requires some plots and correlation calculations. 
-```{r step 3}
-
+```{r step 3 NJ tree}
+x <- as.vector(D)
+y <- as.vector(as.dist(cophenetic(tre2)))
+plot(x, y, xlab="original pairwise distances", ylab="pairwise distances on the tree", main="Is NJ appropriate?", pch=20, col=transp("black",.1), cex=3)
+abline(lm(y~x), col="red")
+cor(x,y)^2
 ```
+
+New functions:
+
+- cophenetic() in {stats} package: computes distances between the tips of the trees
+
+The graph can be read similarly to a QQ plot, so the Neighbor-Joining tree is a good representation of our genetic distances.
+
+Let's try one of the other trees that we made in a previous example, using the UPGMA method.
+```{r step 3 UPGMA tree}
+tre3 <- as.phylo(hclust(D,method="average"))
+y <- as.vector(as.dist(cophenetic(tre3)))
+plot(x, y, xlab="original pairwise distances", ylab="pairwise distances on the tree", main="Is UPGMA appropriate?", pch=20, col=transp("black",.1), cex=3)
+abline(lm(y~x), col="red")
+cor(x,y)^2
+```
+
+From this graph, we can tell that UPGMA wouldn't be a great choice. As a reminder, here's the UPGMA based tree:
+```{r UPGMA tree}
+plot(tre3, cex=.5)
+title("UPGMA tree")
+```
+
+This tree is called an **ultrametric** tree, meaning that we assume that all isolates have gone through the same amount of evolution (which is usually not true, especially in this case when our isolates are coming from several different years).
+
+###Bootstrapping
+Similar to all other instances when we've used bootstrapping before, here, bootstrapping a phylogeny can be used to validate the tree. 
+
+To validate our tree, we sample our nucleotides with replacement and rebuild the tree. If our tree is appropriate, the nodes in the original tree and the nodes in the bootstrapped tree should be the same. 
+
+```{r bootstrapping}
+myBoots <- boot.phylo(tre2, dna, function(e) root(nj(dist.dna(e, model = "TN93")),1))
+myBoots
+plot(tre2, show.tip=FALSE, edge.width=2)
+title("NJ tree + bootstrap values")
+tiplabels(frame="none", pch=20, col=transp(num2col(annot$year, col.pal=myPal),.7), cex=3, fg="transparent")
+16
+axisPhylo()
+temp <- pretty(1993:2008, 5)
+legend("topright", fill=transp(num2col(temp, col.pal=myPal),.7), leg=temp, ncol=2)
+nodelabels(myBoots, cex=.6)
+```
+
+New functions:
+
+- bootphylo() in {ape} package: performs the bootstrap automatically for us
+
+- nodelabels() in {ape} package: adds labels to or near the nodes, pretty self explanatory
+
+The numbers shown by nodelabels() is just the number of times each node appeared in the bootstrapped trees (remember, bootstrapping means that we're running the analysis numerous times, not just recreating the tree once). Let's assume bootstrapping recreated the phylogeny 1000 times. The numbers by each node are pretty low, meaning there's not a huge overlap between the nodes in our original tree and the nodes in the bootstrapped tree. What does this mean? Basically, it means that some of the nodes aren't supported. 
+
+How do we overcome this and fix our tree? We can collapse some of the smaller branches, which will make the tree less informative but more concrete.
+```{r collapsing branches}
+temp <- tre2
+N <- length(tre2$tip.label)
+toCollapse <- match(which(myBoots<70)+N, temp$edge[,2])
+temp$edge.length[toCollapse] <- 0
+tre3 <- di2multi(temp, tol=0.00001)
+plot(tre3, show.tip=FALSE, edge.width=2)
+title("NJ tree after collapsing weak nodes")
+tiplabels(tre3$tip.label, bg=transp(num2col(annot$year, col.pal=myPal),.7), cex=.5, fg="transparent")
+axisPhylo()
+temp <- pretty(1993:2008, 5)
+legend("topright", fill=transp(num2col(temp, col.pal=myPal),.7), leg=temp, ncol=2)
+```
+
 

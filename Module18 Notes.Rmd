@@ -40,4 +40,168 @@ factor effects can be **fixed** or **random**
 - requires use of more sophisticated estimation and fitting methods
 
 #Example
+We're measuring the amount of grooming received by female chimpanzees when they are ovulating  versus the rest of their reproductive cycle
+
+- factors are duration of grooming bouts received and the female's reproductive condition
+
+- the second one is a categorical variable with two levels : POP and NONPOP
+
+- there was also data on whether the female had previously given birth, called parity. Categorical variable with 2 levels: parous, P, or nulliparous, N
+
+The regression model should look like this:
+
+grooming duration ~ condition + parity + error
+
+We're assuming that we took multiple observations per subject (multiple bouts of grooming), this violated the **independence of observations** needed for a standard linear regression 
+
+- we can deal with this by adding a *subject ID* as a random effect in our model
+
+- we can estimate a different set of parameters ofor each level of a factor. We can estimate a different intercept for each one OR a different intercept and slope for each level 
+
+- the model estimates the main effects of each variable as well as these individual level parameters
+
+- including the random effects in with the fixed effects is what makes this a mixed model
+
+##Challenge
+```{r}
+library(curl)
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/chimpgrooming.csv")
+d <- read.csv(f, header = TRUE, sep = ",")
+head(d)
+summary(d)
+# first, some exploratory visualization let's plot grooming received
+# duration in relation to subject ID
+par(mfrow = c(1, 1))
+boxplot(data = d, duration ~ subject, col = c("lightpink1"))
+# we see lots of individual variation let's plot grooming received duration
+# in relation to reproductive condition
+boxplot(data = d, duration ~ reprocondition, col = c("burlywood2", "lightpink1"))
+# let's plot grooming received duration in relation to reproductive
+# condition and parity
+boxplot(data = d, duration ~ reprocondition * parity, col = c("burlywood2", "lightpink1"))
+boxplot(data = d, duration ~ reprocondition * subject, col = c("burlywood2", "lightpink1"))
+```
+
+Luna is highest regardless of other variables, Sofia is lowest regardless of other variables. P is higher than N.
+
+##Random Intercept Models
+We're running a mixed effect analysis where:
+
+- we look at how reproductive condition and parity effect grooming duration
+
+- parity is a fixed effect
+
+- subject ID is a random effect
+
+Here's our model:
+
+grooming duration ~ condition + parity + (1|subjecct) + error
+
+(1|subject)- let's talk about it.
+
+- 1 means that we want to estimate an intercept, and the vertical line means that we want a different intercept for each subject.
+
+- we will still have some unexplained error after accounting for the fixed and random effects in the model
+
+- the formula is basically saying that we are expecting multiple response variable observations per subject and the responses will partially depend on the subject's baseline levels== accounts for **nonindependence**
+
+- {lme4} is commonly used for mixed modeling and lmer() function is the mixed model equivalent to lm() hell yeah man
+
+- **syntax note**: fixed effects are included without parenthesis but random effects are included with parenthesis. Error is assumed, so not explicitly required; {lme4} uses **restricted maximum likelihood** rather than ordinary maximum likelihood estimation, unless otherwise specified.
+```{r mixed effects model 1}
+library(lme4)
+lme <- lmer(data = d, duration ~ reprocondition + parity + (1 | subject))
+summary(lme)
+coefficients(lme)
+```
+1. output of the random effects (in this case: SUBJECT): "subject" in the standard deviation column shows how much variability in grooming duration is explained by subject ID, not including the variability explained by the fixed effects. "Residual" makes up the rest of the variability. 
+
+2. fixed effect output: 
+
+- looks pretty similar to lm() coefficient tables. "reproconditionPOP" is the slope for the effect of reproductive condition, meaning that the grooming duration is greater by ~20 units for POP than NONPOP females. We also have a standard error and a t value. 
+
+- "parityP" is the beta coefficient for parity (categorical variable). Grooming duration for parous females is 109 untis greater than for nulliparous females.
+
+- the *intercept* is the grooming duration associated with nulliparous, NONPOP females (because it's considererd the baseline)
+
+##Statistical Significance
+p values aren't as straightforward to determine in mixed effects models. We can use "likelihood ratio tests" to overcome this difficulty because it compares the likelihood of two models with each other, so like a full model versus a reduced, nested model excluding a particular factor
+
+###Example
+Two models that we could compare:
+
+- grooming duration ~ condition + parity +(1|subject) + error
+
+- grooming duration ~ parity + (1|subject) + error
+```{r likelihood ratio test}
+full <- lmer(data = d, duration ~ reprocondition + parity + (1 | subject), REML = FALSE) #REML = FALSE is necessary for a likelihood ratio test because it requires ordinary likelihood, not the altered algorithm used for REML
+summary(full)
+reduced <- lmer(data = d, duration ~ parity + (1 | subject), REML = FALSE)
+summary(reduced)
+#anova() function is used to perform likelihood ratio test
+anova(reduced, full, test = "Chisq")
+```
+The results show that the model WITH reproductive condition fits the data better than the null model excluding this variable
+
+###Example
+What if we compare two models with and without **parity**?
+```{r LRT parity}
+full <- lmer(data = d, duration ~ reprocondition + parity + (1 | subject), REML = FALSE)
+reduced <- lmer(data = d, duration ~ reprocondition + (1 | subject), REML = FALSE)
+anova(reduced, full, test = "Chisq")
+```
+Parity also significantly improves the fit of our model. What are we looking at to decide this again?
+
+##Challenge
+We want a model that includes interations of reproductive condition and parity and COMPARE it to a model without the interaction of these terms. Is the interaction significant?
+```{r}
+full <- lmer(data = d, duration ~ reprocondition * parity + (1 | subject), REML = FALSE)
+reduced <- lmer(data = d, duration ~ reprocondition + parity + (1 | subject), 
+    REML = FALSE)
+anova(reduced, full, test = "Chisq")
+```
+It might be significant?
+
+##Random Slope Models
+Previously, we assumed that the relationship between grooming duration and reproductive condition + parity was the same for all females, but that could be false. We can use random slope models to allow the relationship to vary among subjects.
+```{r random slope model}
+lme <- lmer(data = d, duration ~ reprocondition + parity + (1 + reprocondition | subject) + (1 + parity | subject), REML = FALSE)
+summary(lme)
+coefficients(lme)
+# reproductive condition
+full <- lmer(data = d, duration ~ reprocondition + parity + (1 + reprocondition | 
+    subject) + (1 + parity | subject), REML = FALSE)
+reduced <- lmer(data = d, duration ~ parity + (1 + reprocondition | subject) + 
+    (1 + parity | subject), REML = FALSE)
+anova(reduced, full, test = "Chisq")
+# parity
+full <- lmer(data = d, duration ~ reprocondition + parity + (1 + reprocondition | 
+    subject) + (1 + parity | subject), REML = FALSE)
+null <- lmer(data = d, duration ~ reprocondition + (1 + reprocondition | subject) + 
+    (1 + parity | subject), REML = FALSE)
+anova(reduced, full, test = "Chisq")
+```
+The random effects are a little different now: the new notation means that we want to estimate different baseline levels of grooming duration as well as differing responses to the main factor (which is the term before the '|' in the code). Now, each female has a different intercept AND a different slope coefficient for grooming duration as a function of reproductive condition and parity.
+
+Now we can get p values for our fixed factors using LRTs, but we get warnings that our null models fail to converge. This can be due to having a lot of parameters that we're trying to estimate, like more than the number of observations we have. 
+
+##Determining Model Fit
+With today's knowledge, instead of doing everything we just did above, we can assess a model's fit using AIC. **NOTE**: AIC can only give us a relative fit, not whether a model is an overall good fit.
+
+But wait, again! Now we have a simple way to get an Rsquared  value for GLMMs. They propose a **marginal Rsquared** which is variance that is explained on the latent scale instead of the original scale, aka variance explained by only the fixed effects. There's also **conditional Rsquared** which is variance explained by fixed and random effects, aka variance expained by the whole model.
+
+{MuMIn} package gives us a function that calculates these super cool super new Rsquared values: r.squaredGLMM()
+
+###Challenge
+Compare full, reduced, and null models from the random slope exercise using the new methods. Which model has the best fit? 
+```{r Rsquared methods}
+library(AICcmodavg)
+print(aictab(list(full, reduced, null), c("full", "reduced", "null")), LL = FALSE) #ERROR: null not found
+library(MuMIn)
+r.squaredGLMM(full)
+r.squaredGLMM(reduced)
+r.squaredGLMM(null)
+```
+
+
 
