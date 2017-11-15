@@ -46,3 +46,194 @@ Examples of link functions:
 - logit link: log(pi/(1-pi)), used for binary data and logistic regression
 
 #Model Fitting in GLM
+This is commonly done using the maximumv likelihood approach. The GLM evaluates the linear predictor for each value of the response variable, then "back-transforms" the predicted value into the Y value scale (uses the inverse of the link function). Then, we compare these predicted values with the observed Y values, adjust the parameters, and refit the model on the transformed scale until the fit stops improving. In these types of approaches, the data is taken as a given and we are trying to find the best model to fit the data. **We judge the fit of a model based on ow likely the data would be if the model were correct.**
+
+*Deviance* is the measure used in a GLM to asssess the goodness of fit of a model. 
+
+- it is defined as 2 x [(log-likelihood of fully saturated model) - (log-likelihood of proposed model)]
+
+- the fully saturated model fits the data perfectly, so the likelihood is 1, making the log-likelihood 0
+
+- so deviance can essentially be calculated as -2 x log-likelihood of proposed model; minimizing  the deviance for a model is the same thing as maximizing the likelihood
+
+- in logistic regression, the sum of squared deviance residuals is analagous to the sum of squares of residuals in a standard linear regression
+
+glm() function can be used for multiple types of generalized linear modeling. It's formatting is: glm(y ~ x, family = "gaussian"), where family= specifies the kind of error structure we expect in the response variable, aka the link function
+
+- X can be continuous or categorical or both 
+
+#Logistic Regression
+When we have a binary response variable, we are interested in modeling pi, which is the probability that Y=1 for a given X value, rather than mu, the mean of Y given an X value. The model we generally fit to is the logistic regression model, has a sigmoidal, nonlinear, curve. Error isn't normally distributed, usually has a binomial distribution.
+
+We use the natural log of the odds ratio as our response variable. The **odds ratio** is the ratio of probabilities of Y=1 versus Y=0 for a given X, called "logit"
+
+g = logit(pi) = (natural)log[pi/(1-pi)] = beta0 +beta1 x X
+
+- pi = the probability that Y=1 and 1-pi = the probability that Y=o
+
+So the logit transformation is the **link function** that connects Y to the predictors. Logit is useful for converting probabilities (between 0 and 1) into the scale of a whole real number line.
+
+We can convert our data back by using "expit", the inverse of logit
+
+expit(g) = (e^g)/(1+ e^g) = 1/ (1 + e^-g) = p
+
+##Example
+Let's see how a student's GRE scores, GPA, and ranking in their undergraduate school (1-4) affects admission into graduate school, where admitted vs non-admitted is a binary variable
+```{r GRE scores}
+library(curl)
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/graddata.csv")
+d <- read.csv(f, header = TRUE, sep = ",")
+head(d)
+summary(d)
+# first, some exploratory visualization
+par(mfrow = c(1, 2))
+plot(as.factor(d$admit), d$gpa, xlab = "Admit", ylab = "GPA", col = "lightgreen")
+plot(as.factor(d$admit), d$gre, xlab = "Admit", ylab = "GRE", col = "lightblue")
+pairs(d)
+table(d$admit, d$rank)
+# glm of admit~gre
+glm <- glm(data = d, admit ~ gre, family = "binomial")
+summary(glm)
+```
+
+So our resulting equation is:
+
+logit(pi) = -2.901344 + 0.003582 x GRE
+
+##Interpretation and Hypothesis Testing
+A beta1 estimate in a logistic regression means the change in the log(odds ratio) of the outcome for a one unit increase in X. Our coefficient for GRE is positive and significantly different from 0 (even thought it's pretty low), so an increasing GRE score results in an increase in the log(odds ratio) of admission.
+
+```{r predict()}
+x <- seq(from = min(d$gre), to = max(d$gre), length.out = 1000)
+logOR <- predict(glm, newdata = data.frame(gre = x))  # this function will predict the log(odds ratio)... but if we add the argument type='response', the predict() function will return the expected response on the scale of the Y variable, i.e., Pr(Y)=1, rather than the odds ratio!
+y <- predict(glm, newdata = data.frame(gre = x), type = "response")
+plot(d$admit ~ d$gre, pch = 21, type = "p", xlab = "GRE Score", ylab = "Pr(Y)", 
+    main = "Pr(Y) versus GRE")
+lines(y ~ x, type = "l")
+ORchange <- exp(glm$coefficients[2])
+ORchange  # a 1 unit increase in gre results in a 0.36% increase in likelihood of admission
+```
+The null hypothesis would be that there is no relationship between the response variable and the predictor variable. We have two ways to test H(o):
+
+1. Calculate the *Wald Statistic* for the predictor variable and compare it to the standard normal or z distribution (this is a ML-based version of the t test)
+
+Wald statistic = beta1/SE of beta1 ; better when sample sizes are large
+```{r}
+library(broom)
+glmresults <- tidy(glm)
+wald <- glmresults$estimate[2]/glmresults$std.error[2]
+p <- 2 * (1 - pnorm(wald))  # calculation of 2 tailed p value associated with the Wald statistic
+p
+CI <- confint(glm, level = 0.95)  # this function returns a CI based on log-likelihood, an iterative ML process
+CI
+CI <- confint.default(glm, level = 0.95)  # this function returns CIs based on standard errors, the way we have calculated them by hand previously... note the slight difference
+CI
+CI <- glmresults$estimate[2] + c(-1, 1) * qnorm(0.975) * glmresults$std.error[2]  # and this is how we have calculated CIs by hand previously
+CI
+```
+
+##Challenge
+Repeating the logistic regression, let's use GPA rather than GRE as the predictor. We want:
+
+1. Is GPA a significant predictor?
+
+2. What is beta1 and the 95% CI?
+
+3. How much does an increase of 1 unit in gpa increase the odds ratio for admission?
+
+4. What is the 95% CI for the odds ratio?
+
+5. Graph the probability of admission (pi) for students with GPAs between 2.0 and 4.0
+```{r challenge}
+glm <- glm(data = d, admit ~ gpa, family = "binomial")
+summary(glm)
+coeffs <- glm$coefficients
+coeffs
+CI <- confint(glm, level = 0.95)
+CI
+ORchange <- exp(coeffs[2])
+ORchange
+ORchangeCI <- exp(CI[2, ])
+ORchangeCI
+library(ggplot2)
+x <- data.frame(gpa = seq(from = 2, to = 4, length.out = 100))
+prediction <- cbind(gpa = x, response = predict(glm, newdata = x, type = "response"))
+# IMPORTANT: Using type='response' returns predictions on the scale of our Y
+# variable, in this case Pr(admit); using the default for type would return
+# a prediction on the logit scale, i.e., the log(odds ratio), or
+# log(Pr(admit)/(1-Pr(admit)))
+head(prediction)
+p <- ggplot(prediction, aes(x = gpa, y = response)) + geom_line() + xlab("GPA") + 
+    ylab("Pr(admit)")
+p
+prediction <- cbind(gpa = x, predict(glm, newdata = x, type = "response", se = TRUE))
+prediction$LL <- prediction$fit - 1.96 * prediction$se.fit
+prediction$UL <- prediction$fit + 1.96 * prediction$se.fit
+head(prediction) #predict() can also get us CIs around our estimate of log(odds of admission)
+p <- ggplot(prediction, aes(x = gpa, y = fit))
+p <- p + geom_ribbon(aes(ymin = LL, ymax = UL), alpha = 0.2) + geom_line() + 
+    xlab("GPA") + ylab("Pr(admit)")
+p <- p + geom_point(data = d, aes(x = gpa, y = admit))
+p #the dots would be admitted of not admitted
+```
+
+##Likelihood Ratio Tests
+A way for us to evaluate the significance of an overall model in a logistic regression. It compares the fit of a more complex model to that of a nested/reduced model.
+
+A *likelihood ratio test* compares the log-likelihood for the full model to that of the intercept only model. These are similar to partial F tests with the models that they each compare, but the test statistic we use is a ratio of the log-likelihoods of the two models. The p values are calculated using the chi-square distribution with one df
+```{r likelihood ratio test}
+glm1 <- glm(data = d, admit ~ 1, family = "binomial")
+glm2 <- glm(data = d, admit ~ gpa, family = "binomial")
+anova(glm1, glm2, test = "Chisq")
+```
+df is the number of parameters in the proposed model - the number of parameters in the nested model
+
+The p value is low enough where we can reject the null hypothesis that removing GPA from the model doesn't result in a loss of fit
+
+We can also use lrtest() in the {lmtest} package to do the same thing
+```{r lrtest()}
+library(lmtest)
+lrtest(glm1, glm2)
+```
+We can also perform a likelihood ratio test by hand by taking the difference between the deviances of the two models. 
+
+Deviance = -2 x (log-likelihood of the proposed model) (because the likelihood of the saturated model=1, so the log-likelihood=0)
+
+We can find the deviance by using $deviance orthe deviance() function
+```{r deviance}
+Dglm1 <- glm1$deviance  # intercept only model
+Dglm1
+Dglm1 <- deviance(glm1)
+Dglm1
+Dglm2 <- glm2$deviance  # model with intercept and one predictor
+Dglm2
+Dglm2 <- deviance(glm2)
+Dglm2
+chisq <- Dglm1 - Dglm2  # this is a measure of how much the fit improves by adding in the predictor
+chisq
+p <- 1 - pchisq(chisq, df = 1)  # df = difference in number of parameters in the full verus reduced model
+p
+x2 <- glm1$null.deviance - glm1$deviance
+x2  # why is this 0? because glm1 *is* the intercept only model!
+p <- 1 - pchisq(x2, df = 1)
+p
+x2 <- glm2$null.deviance - glm2$deviance
+x2
+p <- 1 - pchisq(x2, df = 1)  # df = difference in number of parameters in the full verus reduced model
+p
+
+```
+Just to recap:
+If n=the number of observations in the dataset and k=the number of predictor terms in the proposed model,
+
+- Saturated model assumes that each data point has its own parameter, so we need "n" parameters 
+
+- Null model assumes the opposite, so one parameter (the intercept) is used to describe all of the data
+
+- Proposed model is the model that we're fitting by GLM, so we need k predictor terms
+
+- Null deviance is the deviance of the null model: 2(log-likelihood of saturated model - log-likelihood of null model), df= n-1
+
+- Residual deviance is 2(log-likelihood of the saturated model - log-likelihood of proposed model), df= n-k
+
+

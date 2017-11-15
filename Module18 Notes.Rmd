@@ -107,6 +107,8 @@ grooming duration ~ condition + parity + (1|subjecct) + error
 
 - {lme4} is commonly used for mixed modeling and lmer() function is the mixed model equivalent to lm() hell yeah man
 
+- {lme4} will never give a p value, you have to look at all the effects individually. Most acceptable way to get p values for mixed models is using Bayesian framework
+
 - **syntax note**: fixed effects are included without parenthesis but random effects are included with parenthesis. Error is assumed, so not explicitly required; {lme4} uses **restricted maximum likelihood** rather than ordinary maximum likelihood estimation, unless otherwise specified.
 ```{r mixed effects model 1}
 library(lme4)

@@ -122,6 +122,7 @@ AICc = AIC + [2k x (k + 1)]/(n-k-1)
 - k is the number of parameters in the model
 
 The values for AIC and AICc converge as sample size increases, so some people think that AICc should always be the default model. 
+**package can be important for publications**
 ```{r AICc example}
 library(AICcmodavg)
 print(aictab(list(m0, m1, m2), c("m0", "m1", "m2")), LL = FALSE)
