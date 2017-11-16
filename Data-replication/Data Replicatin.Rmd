@@ -20,7 +20,6 @@ blah2$gene_symbol #This works, but which one do I want? if any?
 #this isn't working
 names(blah2)
 c2 <- load_gmt("c2.symbols.gmt")
-c2
 names(c2)
 c2$set_name
 p53_c2 <- load_gmt("P53_C2.all.leading.genes.WT.gmt")
@@ -147,4 +146,4 @@ GSEA.Analyze.Sets(
    width = 16
 )
 ```
-
+could be deprecated, google backslash
