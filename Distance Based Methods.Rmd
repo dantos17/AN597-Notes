@@ -28,23 +28,23 @@ head(annot) #we have 80 isolates (5 per year) typed (?) for the same 1701 nucleo
 
 Distance-based methods: get a matrix of pairwise genetic distances between taxa and then use hierarchical clustering to create the tree
 
-clustering methods:
+Just to recap on some background that I mentioned earlier: Distance-based trees are produced by calculating the genetic distances between pairs of taxa, followed by hierarchical clustering that creates the actual "tree" look. While there are tons of algorithms to choose from when computing distances, there are two popular clustering methods that are used most frequently. 
 
-1. UPGMA- simplest method for constructing trees, assumes the same evolutionary speed for all lineages (disadvantage); all leaves have the same distance from the root (creates ultrametric tree)
+1. UPGMA- this is the simplest method for constructing trees, assumes the same evolutionary speed for all lineages (which can be a disadvantage); all leaves have the same distance from the root (creates ultrametric tree)
 
-2. Neighbor-joining- taking the two closest nodes of the tree and defined as neighbors; you keep doing this until all of the nodes have been paired together
+2. Neighbor-joining- taking the two closest nodes of the tree and defines them as neighbors; you keep doing this until all of the nodes have been paired together
 
-Advantages? It's fast and flexible
+The following figure can help visually distinguish UPGMA methods from neighbor-joining methods (you can ignore single linkage and complete linkage)
 
-Disadvantages? Can't test for the best model/tree, can be inaccurate, and is highly dependent on the distance and clustering algorithm
+![](https://openi.nlm.nih.gov/imgs/512/123/2277402/PMC2277402_1471-2105-9-90-5.png)
 
-Remember: Basic steps for Distance-Based Phylogenies
+There are 3 basic steps for Distance-Based Phylogenies:
 
 1. find genetic distances for pairs of individuals (in our case, isolates)
 
 2. make a tree using these distances
 
-3. evaluate the relevance of your tree
+3. evaluate the relevance of the tree
 
 ##Step 1
 ```{r step 1}
@@ -59,11 +59,9 @@ New functions:
 
 - dist.dna() from {ape} package: this literally just makes a matrix of pairwise distances from the DNA we give it, super easy; "TN93" is just the type of evolutionary model we're using, this particular one allows for different transition rates, heterogenous base frequencies, and variation of substitution rate at the same site
 
-That was step 1 in its entirety, so it's pretty easy because we have a nice function that computes all of our distances for us.
+That was step 1 in its entirety, so it's pretty easy because we have a nice function that computes all of our distances for us. As I mentioned in the code chunk, the darker colors indicate larger distances, so, while we have some data about the genetic differences between a pair of species, we aren't quite ready to draw massive conclusions yet.
 
 ##Step 2
-![](http://quentincordonnier.tumblr.com/post/90647281369/growin-up)
-
 Building the tree generally just gives us a better visual understanding of what's going on. As I mentioned previously, the figure from Step 1 shows us that there is a trend or pattern of some sort, but it's difficult to get more than that just from the figure. On the other hand, we can't always assume that a tree is the best or most efficient representation of our genetic distances.
 
 R has a ton of algorithm options for us to choose from to make our tree (New functions):
@@ -87,6 +85,7 @@ title("A Simple NJ Tree")
 h_cluster <- hclust(D, method = "average", members = NULL) # method = average is used for UPGMA, members can be equal to NULL or a vector with a length of size D
 plot(h_cluster, cex = 0.6)
 ```
+
 Feel free to try the other three functions out on your own! How do they compare to these two examples? Do you think one is better than the rest?
 
 The two previous examples show the simplest types of trees that we can make, but you can also add annotations, labels, and colors to make the tree easier to interpret. 
@@ -116,6 +115,7 @@ plot(tre, type = "unrooted", show.tip = FALSE)
 title("Unrooted NJ Tree")
 tiplabels(tre$tip.label, bg = num2col(annot$year, col.pal = myPal), cex = 0.5)
 ```
+
 Or, even better, we can make a root for the tree. The best rooting would be any of the oldest isolates. We can use the annot dataset again.
 ```{r rooting tree}
 head(annot)
@@ -133,8 +133,6 @@ New  functions:
 - root() fomr {ape} package: reroots a phylo tree using a specific outgroup
 
 - axisPhylo() from {ape} package: adds a scaled axis on the side of a plot
-
-**They go into molecular clocks here and how to perform a regression to figure out if there is a molecular clock, I might not do that- pg. 12 if I decide to add it in later**
 
 ##Step 3
 Because there are so many different algorithms to choose from when constructing our tree, we have to make sure the one we chose was appropriate for our dataset, using our original distance matrix (in this case, D). This is much easier than it sounds, and just requires some plots and correlation calculations. 

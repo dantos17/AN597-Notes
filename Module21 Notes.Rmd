@@ -1,0 +1,257 @@
+---
+title: "Module21 Notes"
+author: "Dani Antos"
+date: "November 20, 2017"
+output: html_document
+---
+
+APIs = application programming interfaces (aka Twitter and Facebook)
+
+{twitteR} package is used to provide access to the Twitter or API from in R; we can use this to get subsets of Twitter data that we can analyse later 
+```{r}
+app <- "Dani Antos"
+consumer_key <- "	DwczQUwczD4NaOZePDIbxJWx0"
+consumer_secret <- "	qVG5827APo8Am2h5WHMk0vDrSYmQK1i7ZaTve5DnQptvldWAg4"
+access_token <- "394935652-Iqjr2fCWJm11bS2Q9C5v98esHwRJQ5Lyu8AtD0Id"
+access_secret <- "EheIokoy89sjcwfTzFoW22U93cKEu66BmIffUBUTOpcVB"
+library(twitteR)
+setup_twitter_oauth(consumer_key, consumer_secret, access_token, access_secret)
+me <- getUser("d_antos")
+me$location
+me$name
+me$lastStatus$text <- iconv(me$lastStatus$text, "latin1", "ASCII", "byte")  # iconv() function should fix most encoding issues
+str(me)  # take a look at the structure of a 'user' object
+who <- getUser("Mammals_Suck")  # replace your user name with someone else's Twitter handle (minus the '@')
+who$description
+potus <- getUser("realDonaldTrump")
+potus$description
+tweets <- userTimeline("Mammals_Suck", n = 50)
+head(tweets) 
+str(tweets[[1]])  # take a look at the structure of the first tweet (a 'status')
+tweets <- userTimeline("potus", n = 100)
+length(tweets)
+head(tweets)
+tweets <- strip_retweets(tweets, strip_manual = TRUE, strip_mt = TRUE) #removes retweets
+head(tweets)
+tweets <- twListToDF(tweets)
+head(tweets) # converts tweet list to a dataframe
+myfollowers <- me$getFollowers()  # return 10 of my followers
+myfollowers
+library(data.table)  # this library lets us use rbindlist()
+myfollowers_df = rbindlist(lapply(myfollowers, as.data.frame))
+myfollowers_df$name #shows where followers are located
+myfollowers_df$location # getfriends() can return twitter followers of a particular user (like who they are following)
+myfriends <- me$getFriends()
+friends_df <- data.frame()
+for (i in 1:length(myfriends)) {
+    n <- myfriends[[i]]$name
+    h <- myfriends[[i]]$screenName
+    info <- cbind(n, h)
+    friends_df <- rbind(friends_df, info)
+}
+names(friends_df) <- c("Name", "Handle")
+friends_df
+ndt_friends <- getUser("neiltyson")$getFriends(n = 100)
+length(ndt_friends)
+ndt_friends_df = rbindlist(lapply(ndt_friends, as.data.frame))
+ndt_friends_df$name
+#you can also get a dataframe of the followers of a user, but the list could only be partial
+ndt_followers <- getUser("neiltyson")$getFollowers(n = 1000)  # setting n=1000 returns up to 1000 followers; the default is 'all' followers, but if the user has large numbers of followers you are very likely to hit the rate limit!
+length(ndt_followers)
+ndt_followers_df = rbindlist(lapply(ndt_followers, as.data.frame))
+head(ndt_followers_df$name, 50)  # only returning n=50
+f <- data.frame()
+for (i in 1:length(myfriends)) {
+    following <- cbind(as.data.frame(myfriends[[i]]$name), as.data.frame(myfriends[[i]]$getFriendsCount()))
+    f <- rbind(f, following)
+}
+names(f) <- c("name", "following")
+f # how many people that Chris is following that follow back,  I THINK
+f <- data.frame()
+for (i in 1:length(myfriends)) {
+    followers <- cbind(as.data.frame(myfriends[[i]]$name), as.data.frame(myfriends[[i]]$getFollowersCount()))
+    f <- rbind(f, followers)
+}
+names(f) <- c("name", "followers")
+f #how many followers Chris' followers have
+f <- data.frame()
+for (i in 27:30) {
+    # running for a subset of my list of friends... here, we ask Twitter to only
+    # return 10
+    my_friend <- myfriends[[i]]$name
+    my_friend_friends <- myfriends[[i]]$getFriends(n = 10)
+    my_friend_friends <- cbind(my_friend, rbindlist(lapply(my_friend_friends, 
+        as.data.frame)))
+    f = rbind(f, my_friend_friends)
+}
+FOF <- cbind(f$my_friend, f$name)  # we could add other field names here, too...
+colnames(FOF) <- c("friend", "FOF name")
+FOF #we have to do this loop in subsets because the rate limit is 15 followers, it's giving us information on friends of friends
+close_trends <- closestTrendLocations(lat = 42.3601, long = -71.0589)  # returns an ID ('woeid') for the current list of topics trending closest to a particular lat and long, like that of Boston, MA
+head(close_trends)
+trends <- getTrends(close_trends$woeid)  # now, return the trends pertinent to that location
+head(trends)
+wd <- searchTwitter("RuPaul+Drag+Race", lang = "en", n = 50, since = "2017-10-01", 
+    geocode = "42.3601,-71.0589,1000mi")  # only required argument is searchString; since restricts to tweets since a date; geocode restricts to within a set radius of a given lat and long, here, within 1000 miles of Boston, MA
+wd <- twListToDF(wd)
+head(wd$text)
+new_tweet <- updateStatus("Whaaaaaaat... I just posted to Twitter from R!!!!")
+deleteStatus(new_tweet)  #if this returns 'TRUE', the tweet was deleted correctly.
+new_tweet <- updateStatus("This a post to Twitter from R!!!!")
+my_timeline <- userTimeline("fuzzyatelin", retryOnRateLimit = 10)
+my_timeline
+to_delete <- my_timeline[[1]]
+deleteStatus(to_delete)
+new_tweet <- tweet("I can now post GIFs to my twitter feed from R... there is no longer any reason to leave R...", 
+    mediaPath = "~/Desktop/divine-wink-and-smile.gif")
+```
+
+{rtweet} is another package that lets us interact with the Twitter API, it also needs authorisation
+
+```{r}
+library(rtweet)
+app <- "My rtweet Access App"
+consumer_key <- "[YOUR CONSUMER KEY]"
+consumer_secret <- "[YOU CONSUMER SECRET]"
+library(rtweet)
+rtweet_tokens <- create_token(app = app, consumer_key = consumer_key, consumer_secret = consumer_secret)
+home_directory <- normalizePath("~/")
+file_name <- paste0(home_directory, "/", "rtweet_tokens")
+save(rtweet_tokens, file = file_name)
+cat(paste0("TWITTER_PAT=", file_name, "\n"), file = paste0(home_directory, "/.Renviron"), 
+    append = TRUE)
+library(rtweet)
+sasha <- search_tweets("sasha_velour", n = 100)
+head(sasha$text)
+potus <- get_timeline("realDonaldTrump", n = 50)
+head(potus$text)
+# we can combine search terms with '+'
+wd <- search_tweets("RuPaul+Sasha", n = 100)
+head(wd$text)
+# we can extract data on the users who posted tweets
+head(users_data(wd))
+# we can lookup users by their screen_name or user_id
+users <- c("Mammals_Suck", "hadleywickham", "RuPaul", "sasha_velour", "potus", 
+    "fuzzyatelin", "BarakObama")
+famous_tweeters <- lookup_users(users)
+famous_tweeters
+# we can search for particular users and retrieve their public posts (e.g.,
+# for user '@bjork')
+ndt <- lookup_users("bjork")
+ndt <- get_timeline("bjork", n = 100)
+# here we pass Neil DeGrasse Tyson's tweets into a corpus for text mining
+# (see Module 20!)
+library(tm)
+ndtCorpus <- Corpus(VectorSource(ndt$text))
+
+# we can also retreive the user IDs of people following a particular user,
+# e.g., bjork
+bjork_followers <- get_followers("bjork", n = 5000)  # by default, n=75000... if you specify something less, it will return in multiples of 5000
+bjork_followers <- as.character(unlist(bjork_followers$user_id))
+head(bjork_followers, 100)
+# ... and then lookup data on those users
+bjork_followers <- lookup_users(bjork_followers)
+head(bjork_followers$name, 100)
+
+```
+
+```{r facebook}
+library(Rfacebook)
+FBtoken <- "EAACEdEose0cBAHKcL0KH157INTz2QZCRaxdGx77fhqZBRi1b0jjIGg4SKo3xboFiihDrStlR8g8dmUXtHjuVKDzIQpmyJHNl8UvWIosIrbwhZCOesgHibEgenTPZBSPpZBfq7N4uWeK88BH57WzaUOyHMuqUtboHnImyYQ9EyUusxv4FkcMfR1ujZBPZBhams8ZD"
+me <- getUsers("me", token = FBtoken, private_info = TRUE)  # returns my profile info
+me
+mylikes <- getLikes(user = "me", token = FBtoken)
+mylikes
+searchGroup("Evolutionary Anthropology", token = FBtoken)
+getGroup(group_id = 227055379125, token = FBtoken, n = 10)
+monkeyPages <- searchPages("monkey", token = FBtoken, n = 20)
+monkeyPages$description
+updateStatus("This is a test of the FB API from R", FBtoken)
+```
+
+I didn't read any of this, just copied and pasted the code
+```{r}
+consumer_key <- "[YOUR KEY]"
+consumer_secret <- "[YOUR SECRET]"
+library(httr)
+library(jsonlite)
+# set up a key:value pair for authorization and get an authorization token
+# back from Twitter we use POST() because we are sending information to
+# Twitter
+auth_string <- base64_enc(paste(consumer_key, consumer_secret, sep = ":"))  # encoded our key and secret
+request <- POST("https://api.twitter.com/oauth2/token", add_headers(Authorization = paste("Basic", 
+    gsub("\n", "", auth_string)), `Content-Type` = "application/x-www-form-urlencoded;charset=UTF-8"), 
+    body = "grant_type=client_credentials")
+
+# Extract the access token from the returned post
+stop_for_status(request, "Need to authenticate with Twitter")
+TWtoken <- paste("Bearer", content(request)$access_token)
+# API call to return statuses
+endpoint <- "https://api.twitter.com/1.1/statuses/user_timeline.json"
+query <- "?screen_name=fuzzyatelin&count=10"
+request <- paste0(endpoint, query)
+x <- GET(request, add_headers(Authorization = TWtoken))
+x <- prettify(content(x, as = "text", type = "application/json", encoding = "UTF-8"))  # extract and prettify `content`
+tweets <- fromJSON(x)  # convert extracted contents to a dataframe
+tweets$text
+# API call to search tweets
+endpoint <- "https://api.twitter.com/1.1/search/tweets.json"
+query <- "?q=RuPaul&count=10"
+request <- paste0(endpoint, query)
+x <- GET(request, add_headers(Authorization = TWtoken))
+x <- prettify(content(x, as = "text", type = "application/json", encoding = "UTF-8"))
+tweets <- fromJSON(x)
+tweets$statuses$text
+endpoint <- "https://graph.facebook.com/v2.8/me"
+query <- paste0("?fields=id,name,hometown,location,friends,posts&access_token=", 
+    FBtoken)
+request <- paste0(endpoint, query)
+x <- GET(request)
+x <- prettify(content(x, as = "text", type = "application/json", encoding = "UTF-8"))
+x
+query <- paste0("?q=Proyecto+Primates&type=page&access_token=", FBtoken)
+request <- paste0(endpoint, query)
+x <- GET(request)
+x <- prettify(content(x, as = "text", type = "application/json", encoding = "UTF-8"))
+x
+endpoint <- "https://graph.facebook.com/v2.8/me/feed"
+query <- paste0("?message=Hello%Queens!!&access_token=", FBtoken)
+request <- paste0(endpoint, query)
+x <- POST(request)
+x <- prettify(content(x, as = "text", type = "application/json", encoding = "UTF-8"))
+x <- fromJSON(x)
+id <- x$id
+id
+endpoint <- paste0("https://graph.facebook.com/v2.8/", id)
+query <- paste0("?access_token=", FBtoken)
+request <- paste0(endpoint, query)
+x <- DELETE(request)
+x <- prettify(content(x, as = "text", type = "application/json", encoding = "UTF-8"))
+x
+endpoint <- "https://graph.facebook.com/v2.8/me/photos"
+query <- paste0("?access_token=", FBtoken)
+request <- paste0(endpoint, query)
+x <- POST(request, body = list(message = "Oh, you know... just uploading GIFs to Facebook from R...", 
+    source = upload_file("~/Desktop/divine-wink-and-smile.gif")))
+x <- prettify(content(x, as = "text", type = "application/json", encoding = "UTF-8"))
+x <- fromJSON(x)
+x
+
+```
+
+```{r Google maps}
+# Google Maps AP1 v3
+endpoint <- "https://maps.googleapis.com/maps/api/geocode/json"
+query <- "?address=125+Peterborough+Street,+Boston,+MA"  # my old address... no token needed
+request <- paste0(endpoint, query)
+x <- GET(request)
+x <- prettify(content(x, as = "text", type = "application/json", encoding = "UTF-8"))
+x <- fromJSON(x)
+x  # this will show use the nested structure of the returned JSON file... from this, we can extract different nodes
+address <- x[["results"]]$formatted_address
+lat <- x[["results"]]$geometry$location$lat
+long <- x[["results"]]$geometry$location$lng
+x <- c(address, lat, long)
+x
+```
+
