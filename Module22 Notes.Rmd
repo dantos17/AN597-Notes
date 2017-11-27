@@ -1,0 +1,275 @@
+---
+title: "Module22 Notes"
+author: "Dani Antos"
+date: "November 24, 2017"
+output: html_document
+---
+
+```{r code to install Rgraphviz}
+source("https://bioconductor.org/biocLite.R")  # loads a of functions that allows us to access and install Bioconductor packages in addition to CRAN packages
+biocLite("Rgraphviz", suppressUpdates = TRUE)  # installs the {Rgraphviz} package and suppresses updating of other packages from Bioconductor
+```
+
+{tm} package is the basic R package for text mining, and it's pretty comprehensive in terms of functioons for text processing. 
+
+We have a **corpus**, which is a collection of texts that we can perform analyses on. It could be a bunch of news articles or tweets, etc., and then within each corpus, we have separate documents, articles, stories, or individual posts, each a separate entity. 
+
+- DirSource() identifies the source of documents for the corpus
+
+- VectorSource() can be used if our documents are already in an R vector
+
+I didn't download the books and therefore did not run any of the code
+```{r}
+library(tm)
+library(SnowballC)
+path <- "~/Desktop/texts"
+dirCorpus <- Corpus(DirSource(path))  # read in text documents... within each document, content is a vector of character strings
+summary(dirCorpus)
+# inspect(dirCorpus)
+dirCorpus[[1]]$meta  # show the metadata for document 1
+head(dirCorpus[[1]]$content)  # show the start of document 1
+```
+
+```{r jane austen}
+library(curl)
+library(stringr)
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/complete_jane_austen.txt")
+f <- scan(file = f, what = "character", sep = "")  # read in text document... this function, separates every word
+doc <- paste(f, collapse = " ")  # collapses the complete text by spaces... creates a single long character string
+docs <- str_split(doc, "THE END")[[1]]  # splits the doc into a vector of docs
+fileCorpus <- Corpus(VectorSource(docs))  # converts the split doc into a corpus of documents; within each document, content is a single character string
+summary(fileCorpus)
+# inspect(fileCorpus)
+# to remove empty docs from corpus
+for (i in 1:length(fileCorpus)) {
+    if (fileCorpus[[i]]$content == "") {
+        fileCorpus[[i]] <- NULL
+    }
+}
+titles <- c("Persuasion", "Northanger Abbey", "Mansfield Park", "Emma", "Love and Friendship and Other Early Works", 
+    "Pride and Prejudice", "Sense and Sensibility")
+for (i in 1:length(fileCorpus)) {
+    # this loop assigns titles to documents
+    fileCorpus[[i]]$meta$id <- titles[i]
+}
+fileCorpus[[1]]$meta  # show the metadata for document 1
+head(fileCorpus[[1]]$content)  # show the start of document 1
+
+```
+
+
+```{r obama}
+library(curl)
+f <- curl("https://raw.githubusercontent.com/fuzzyatelin/fuzzyatelin.github.io/master/AN597_Fall17/potustweets.csv")
+f <- read.csv(f, header = TRUE, sep = ",")
+tweetCorpus <- Corpus(VectorSource(f$text))  # each document is the text of a tweet
+# summary(tweetCorpus) # NOTE: THIS LINE NOT RUN TO AVOID COPIOUS OUTPUT
+# inspect(tweetCorpus) # NOTE: THIS LINE NOT RUN TO AVOID COPIOUS OUTPUT to
+# remove empty docs from corpus
+for (i in 1:length(tweetCorpus)) {
+    if (tweetCorpus[[i]]$content == "") {
+        tweetCorpus[[i]] <- NULL
+    }
+}
+tweetCorpus[[1]]$meta  # show the metadata for document 1
+head(tweetCorpus[[1]]$content)  # show the start of document 1
+```
+
+After we load all of our documents, we can "pre-process" our texts to prepare for analysis: we can remove numbers, capitalisation, common words, punctuation, etc.
+
+```{r}
+#remove URLs
+removeURLs <- content_transformer(function(x) gsub("http[^[:space:]]*", "", 
+    x))
+tweetCorpus <- tm_map(tweetCorpus, removeURLs)
+#replace odd characters
+replace <- content_transformer(function(x, pattern) gsub(pattern, " ", x))
+dirCorpus <- tm_map(dirCorpus, replace, "[!@#$%^&*|\\]")  # replaces odd characters; double backslash is really escape character '\' plus '\'
+fileCorpus <- tm_map(fileCorpus, replace, "[!@#$%^&*|\\]")  # replaces odd characters
+tweetCorpus <- tm_map(tweetCorpus, replace, "[!@#$%^&*|\\]")  # replaces odd characters
+#convert to lowercase
+dirCorpus <- tm_map(dirCorpus, content_transformer(tolower))  # we wrap the function `tolower` in `content_transformer()` because it is not a function built into the {tm} package
+fileCorpus <- tm_map(fileCorpus, content_transformer(tolower))
+tweetCorpus <- tm_map(tweetCorpus, content_transformer(tolower))
+#remove punctuation
+dirCorpus <- tm_map(dirCorpus, removePunctuation)
+fileCorpus <- tm_map(fileCorpus, removePunctuation)
+tweetCorpus <- tm_map(tweetCorpus, removePunctuation)
+#remove numbers
+dirCorpus <- tm_map(dirCorpus, removeNumbers)
+fileCorpus <- tm_map(fileCorpus, removeNumbers)
+tweetCorpus <- tm_map(tweetCorpus, removeNumbers)
+#remove stopwords like a, and, also, etc. 
+stopwords("english")  # built in list of stopwords
+mystopwords <- c(stopwords("english"))  # we can add or remove words from this list to this
+dirCorpus <- tm_map(dirCorpus, removeWords, mystopwords)
+fileCorpus <- tm_map(fileCorpus, removeWords, mystopwords)
+tweetCorpus <- tm_map(tweetCorpus, removeWords, mystopwords)
+toCut <- c("email", "Austin")
+dirCorpus <- tm_map(dirCorpus, removeWords, toCut)
+fileCorpus <- tm_map(fileCorpus, removeWords, toCut)
+tweetCorpus <- tm_map(tweetCorpus, removeWords, toCut)
+#remove common word endings
+dirCorpusDict <- dirCorpus  # create a copy
+fileCorpusDict <- fileCorpus  # create a copy
+tweetCorpusDict <- tweetCorpus  # create a copy
+dirCorpus <- tm_map(dirCorpus, stemDocument)
+fileCorpus <- tm_map(fileCorpus, stemDocument)
+tweetCorpus <- tm_map(tweetCorpus, stemDocument)
+#remove any unnecessary whitespace
+dirCorpus <- tm_map(dirCorpus, stripWhitespace)
+fileCorpus <- tm_map(fileCorpus, stripWhitespace)
+tweetCorpus <- tm_map(tweetCorpus, stripWhitespace)
+dirCorpusDict <- tm_map(dirCorpusDict, stripWhitespace)
+fileCorpusDict <- tm_map(fileCorpusDict, stripWhitespace)
+tweetCorpusDict <- tm_map(tweetCorpusDict, stripWhitespace)
+#stem completion
+completeStem <- function(x, dictionary) {
+    x <- unlist(strsplit(as.character(x), " "))
+    x <- x[x != ""]
+    x <- stemCompletion(x, dictionary = dictionary, type = "prevalent")
+    x <- paste(x, sep = "", collapse = " ")
+    PlainTextDocument(stripWhitespace(x))
+}
+
+dirCorpus <- lapply(dirCorpus, completeStem, dictionary = dirCorpusDict)
+dirCorpus <- Corpus(VectorSource(dirCorpus))
+fileCorpus <- lapply(fileCorpus, completeStem, dictionary = fileCorpusDict)
+fileCorpus <- Corpus(VectorSource(fileCorpus))
+tweetCorpus <- lapply(tweetCorpus, completeStem, dictionary = tweetCorpusDict)
+tweetCorpus <- Corpus(VectorSource(tweetCorpus))
+```
+
+#Quantitative Text Analysis
+Now we have to make a *document term matrix*, where the documents are rows and the terms are the columns. The cells of the matrix and the frequency of terms in each document
+```{r DTM}
+dirCorpusDTM <- DocumentTermMatrix(dirCorpus)
+fileCorpusDTM <- DocumentTermMatrix(fileCorpus)
+tweetCorpusDTM <- DocumentTermMatrix(tweetCorpus)
+dirCorpusDTM
+dim(dirCorpusDTM)
+inspect(dirCorpusDTM[1:3, 1:25])  # shows counts in each of the 3 documents of the first 25 words
+fileCorpusDTM
+dim(fileCorpusDTM)
+inspect(fileCorpusDTM[1:7, 1:25])  # shows counts in each of the 7 documents of the first 25 words
+tweetCorpusDTM
+dim(tweetCorpusDTM)
+```
+
+We can also make a *term document matrix*, where the terms are rows and the documents are columns and the cells count how many times a term appears in each document
+```{r TDM}
+dirCorpusTDM <- TermDocumentMatrix(dirCorpus)
+fileCorpusTDM <- TermDocumentMatrix(fileCorpus)
+tweetCorpusTDM <- TermDocumentMatrix(tweetCorpus)
+dirCorpusTDM
+dim(dirCorpusTDM)
+inspect(dirCorpusTDM[1:25, 1:3])  # shows counts of the first 25 words in each of the three documents
+fileCorpusTDM
+dim(fileCorpusTDM)
+inspect(dirCorpusTDM[1:25, 1:7])  # shows counts of the first 25 words in each of the seven documents
+tweetCorpusTDM
+dim(tweetCorpusTDM)
+dirCorpusDTM <- removeSparseTerms(dirCorpusDTM, 0.4)  # only terms that appear in at least 40% of the documents will be retained
+fileCorpusDTM <- removeSparseTerms(fileCorpusDTM, 0.7)  # only terms that appear in at least 70% of the documents will be retained
+dirCorpusTDM <- removeSparseTerms(dirCorpusTDM, 0.4)
+fileCorpusTDM <- removeSparseTerms(fileCorpusTDM, 0.7)
+inspect(dirCorpusTDM[1:25, 1:3])
+inspect(fileCorpusTDM[1:25, 1:7])
+```
+
+We can also organize our terms by **frequency**
+```{r}
+dirCorpusFreq <- colSums(as.matrix(dirCorpusDTM))
+dirCorpusFreq <- sort(dirCorpusFreq, decreasing = TRUE)
+dirCorpusDF <- data.frame(word = names(dirCorpusFreq), freq = dirCorpusFreq)
+rownames(dirCorpusDF) <- NULL
+head(dirCorpusDF)
+fileCorpusFreq <- colSums(as.matrix(fileCorpusDTM))
+fileCorpusFreq <- sort(fileCorpusFreq, decreasing = TRUE)
+fileCorpusDF <- data.frame(word = names(fileCorpusFreq), freq = fileCorpusFreq)
+rownames(fileCorpusDF) <- NULL
+head(fileCorpusDF)
+tweetCorpusFreq <- colSums(as.matrix(tweetCorpusDTM))
+tweetCorpusFreq <- sort(tweetCorpusFreq, decreasing = TRUE)
+tweetCorpusDF <- data.frame(word = names(tweetCorpusFreq), freq = tweetCorpusFreq)
+rownames(tweetCorpusDF) <- NULL
+head(tweetCorpusDF)
+# plotting the most common words: Darwin's books
+library(ggplot2)
+p <- ggplot(data = dirCorpusDF[1:25, ], aes(x = reorder(word, freq), y = freq)) + 
+    xlab("Word") + ylab("Frequency") + geom_bar(stat = "identity") + coord_flip()
+p
+# plotting words that occur at least a certain number of times (here, >=
+# 1000)
+p <- ggplot(subset(dirCorpusDF, freq >= 1000), aes(x = reorder(word, freq), 
+    y = freq)) + xlab("Word") + ylab("Frequency") + geom_bar(stat = "identity") + 
+    coord_flip()
+p
+# plotting the most common words: Austen's novels
+p <- ggplot(data = fileCorpusDF[1:25, ], aes(x = reorder(word, freq), y = freq)) + 
+    xlab("Word") + ylab("Frequency") + geom_bar(stat = "identity") + coord_flip()
+p
+# plotting words that occur at least a certain number of times (here, >=
+# 1000)
+p <- ggplot(subset(fileCorpusDF, freq >= 1000), aes(x = reorder(word, freq), 
+    y = freq)) + xlab("Word") + ylab("Frequency") + geom_bar(stat = "identity") + 
+    coord_flip()
+p
+# an alternative way to find a list of common words and print as a vector
+findFreqTerms(fileCorpusDTM, lowfreq = 1000)
+# we can also find the correlations between words, a measure of how often
+# they co-occur across documents
+findAssocs(fileCorpusDTM, terms = c("pride", "anger"), corlimit = 0.9)
+```
+
+Using terms, we can plot correlations and clusters. We can also do this using the documents
+```{r}
+library(Rgraphviz)
+attrs = list(node = list(fillcolor = "yellow", fontsize = "30"), edge = list(), 
+    graph = list())
+plot(tweetCorpusDTM, terms = findFreqTerms(tweetCorpusDTM, lowfreq = 11), attrs = attrs, 
+    corThreshold = 0.1)
+dev.off()  # clears the plot window for next plot
+library(cluster)
+fileDocDist <- dist(scale(fileCorpusDTM), method = "euclidian")
+fitDoc <- hclust(fileDocDist, method = "ward.D2")
+library(dendextend)
+dend <- as.dendrogram(fitDoc)  # similarity among DOCUMENTS
+dend <- rotate(dend, 1:length(fitDoc$labels))
+dend <- color_branches(dend, k = 3)
+dend <- set(dend, "labels_cex", 1)
+dend <- hang.dendrogram(dend, hang_height = 0.1)
+plot(dend, horiz = TRUE, main = "Similarity among Jane Austen Novels in Term Use")
+dev.off()  # clears the plot window for next plot
+tweetCorpusTDM <- TermDocumentMatrix(tweetCorpus, control = list(bounds = list(global = c(11, 
+    Inf))))
+tweetTermDist <- dist(scale(tweetCorpusTDM), method = "euclidian")
+fitTerm <- hclust(tweetTermDist, method = "ward.D2")
+dend <- as.dendrogram(fitTerm)  # similarity among TERMS
+dend <- rotate(dend, 1:length(fitTerm$labels))
+dend <- color_branches(dend, k = 5)
+dend <- set(dend, "labels_cex", 1)
+dend <- hang.dendrogram(dend, hang_height = 1)
+plot(dend, horiz = TRUE, main = "Similarity in Term Use Across Obama Tweets")
+dev.off()  # clears the plot window for next plot
+```
+
+```{r wordclouds}
+library(wordcloud)
+# for Darwin's books
+set.seed(1)
+wordcloud(dirCorpusDF$word, dirCorpusDF$freq, min.freq = 500)
+set.seed(1)
+wordcloud(dirCorpusDF$word, dirCorpusDF$freq, max.words = 100, rot.per = 0.2, 
+    colors = brewer.pal(6, "Accent"))
+# for Austen's novels
+set.seed(1)
+wordcloud(fileCorpusDF$word, fileCorpusDF$freq, min.freq = 500)
+set.seed(1)
+wordcloud(fileCorpusDF$word, fileCorpusDF$freq, max.words = 100, rot.per = 0.2, 
+    colors = brewer.pal(6, "Accent"))
+# for Obama's tweets
+set.seed(1)
+wordcloud(tweetCorpusDF$word, tweetCorpusDF$freq, min.freq = 500)
+
+```
